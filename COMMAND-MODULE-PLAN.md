@@ -5,6 +5,8 @@ merged to `main` *and* `sw.js` `CACHE` is bumped. Keep it that way until it's be
 real incident-shaped drill.
 
 Status: plan locked Aug 5 2026, revised same day against the SOG set in `Command Reference/`.
+Phase 1 (skeleton and the log) and Phase 2 (clocks, PAR, Wake Lock) built and verified
+in-browser Aug 5 2026.
 
 ---
 
