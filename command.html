@@ -61,6 +61,24 @@
   .inc-hdr .addr{font-size:19px;font-weight:800;margin:3px 0 2px}
   .inc-hdr .since{font-size:13px;color:var(--dim)}
 
+  /* clocks — always derived from stored timestamps, never a counter;
+     see the correctness rule in COMMAND-MODULE-PLAN.md */
+  .clocks{display:flex;gap:20px;margin-top:14px}
+  .clock{flex:1}
+  .clabel{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;
+          color:var(--faint);font-weight:700}
+  .cval{font-size:27px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
+  .cval.overdue{color:var(--red)}
+
+  .parrow{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .parrow .cval{font-size:22px}
+  #btn-par{padding:15px 30px;background:var(--panel2)}
+  #btn-par:active{background:var(--line)}
+
+  .flag.urgent{background:#2c1414;border-color:#5c2020;color:#f0a8a0}
+  .flag.urgent b{color:#fff}
+  #par-banner:empty{margin:0}
+
   .noterow{display:flex;gap:9px}
   .noterow input{flex:1}
 

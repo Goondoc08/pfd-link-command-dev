@@ -197,6 +197,12 @@
   .tile .nmtxt{
     display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
     overflow:hidden;width:100%;
+    /* A name with no spaces (e.g. a one-word product name) can't wrap at
+       all, which lets that tile's grid track stretch wider than its
+       siblings to fit it — breaking the uniform tile size across the row.
+       This lets it break mid-word as a last resort so every tile stays
+       the same size regardless of what the name looks like. */
+    overflow-wrap:anywhere;word-break:break-word;
   }
   .tile .tags{
     position:absolute;left:4px;right:4px;bottom:3px;z-index:1;

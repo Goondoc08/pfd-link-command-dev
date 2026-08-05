@@ -85,7 +85,11 @@ const LINKS = [
         pinned: true
       },
       {
-        name: "Responder360",
+        // Space is deliberate: "Responder360" has no natural break point,
+        // which let its tile stretch wider than the rest of the row to fit
+        // the unbroken word. The space gives it one, same as any other
+        // two-word tile name.
+        name: "Responder 360",
         desc: "Pre-plans & building info",
         url: "https://app.responder360.com/",
         pinned: true
@@ -162,6 +166,12 @@ const LINKS = [
         name: "Exposure Form",
         desc: "Exposures & critical incident tracking",
         url: "https://forms.office.com/Pages/ResponsePage.aspx?id=jKLimMbeYkavgqyuOCdWegsZ1CGuolhJs1kMw31341ZUMk5UOTJXRUlMQ0lVUU4zUUdEUUxGVE9STi4u",
+        pinned: true
+      },
+      {
+        name: "Training Exposure",
+        desc: "Report a training exposure",
+        url: "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=jKLimMbeYkavgqyuOCdWegsZ1CGuolhJs1kMw31341ZUQVU0RjZJRlJGUjlTMk9aNEJQMVZDUUFEQi4u",
         pinned: true
       },
       {
