@@ -6,10 +6,10 @@ real incident-shaped drill.
 
 Status: plan locked Aug 5 2026, revised same day against the SOG set in `Command Reference/`.
 Phase 1 (skeleton and the log), Phase 2 (clocks, PAR, Wake Lock), Phase 3 (accountability
-board, roles, command transfer, resources), and Phase 4 (PAR reasons, command/operational
-mode, per-occupancy benchmarks) built and verified in-browser Aug 5 2026. All six source
-documents in `Command Reference/` have now been read in full, including the Commercial/
-Big-Box and High Rise bulletins.
+board, roles, command transfer, resources), Phase 4 (PAR reasons, command/operational mode,
+per-occupancy benchmarks), and Phase 5 (deployment-model suggestions) built and verified
+in-browser Aug 5 2026. All six source documents in `Command Reference/` have now been read
+in full, including the Commercial/Big-Box and High Rise bulletins.
 
 ---
 

@@ -3,8 +3,10 @@
    Phase 2: elapsed clock, PAR countdown, Wake Lock.
    Phase 3: accountability board, roles, command transfer, resources.
    Phase 4: PAR reasons, command/operational mode, per-occupancy benchmarks.
-   Reads ROSTER / SPECIAL_UNITS / POSITIONS from roster.js and
-   BENCHMARKS_* / COMMAND_MODES / OP_MODES / PAR_REASONS from benchmarks.js.
+   Phase 5: deployment-model suggestions on add-unit, by due order.
+   Reads ROSTER / SPECIAL_UNITS / POSITIONS from roster.js,
+   BENCHMARKS_* / COMMAND_MODES / OP_MODES / PAR_REASONS from benchmarks.js,
+   and SUGGESTIONS / suggestionFor from suggestions.js.
 
    The event log is the database. Every action appends an immutable entry;
    the screen is a projection of that array, re-rendered from scratch on
@@ -530,7 +532,7 @@ function renderBoard(){
   `).join('');
 }
 
-function openAssignSheet(unitName){
+function openAssignSheet(unitName, suggestion){
   const { units } = deriveBoard(state.log);
   const u = units[unitName];
   if (!u) return;
@@ -547,6 +549,18 @@ function openAssignSheet(unitName){
     extra += `<button type="button" class="sheet-opt" data-opt="unsplit">Unsplit — merge back to ${escapeHTML(u.splitOf)}</button>`;
   }
 
+  // A suggestion only ever appears once, at the moment a unit is added
+  // (see confirmAddUnit) — never re-shown on later reassignment, since
+  // by then reality has usually already diverged from the model. It's
+  // one more option in this same sheet, not a separate flow, per the
+  // plan: "a one-tap default sitting next to the full picker."
+  let suggestBlock = '';
+  if (suggestion) {
+    suggestBlock = `
+    <div class="sheet-group">Suggested</div>
+    <button type="button" class="sheet-opt suggested" data-opt="assign-pick" data-value="${escapeHTML(suggestion)}">${escapeHTML(suggestion)}</button>`;
+  }
+
   const groups = POSITIONS.map(g => `
     <div class="sheet-group">${escapeHTML(g.group)}</div>
     ${g.items.map(p =>
@@ -555,6 +569,7 @@ function openAssignSheet(unitName){
   `).join('');
 
   openSheet(unitName + ' (' + u.personnel + ')', `
+    ${suggestBlock}
     ${extra}
     ${groups}
     <div class="sheet-group">Other</div>
@@ -640,6 +655,20 @@ function stepPersonnel(delta){
   $('crew-sv').textContent = sheetCtx.personnel;
 }
 
+// Which Nth unit of this TYPE has arrived so far — always from arrival
+// order in the log, never from the unit's door number (there is no
+// Engine 1 or Engine 4; see roster.js). Mutual aid units carry no
+// roster type and don't participate in due-order counting.
+function dueIndexForType(type, log){
+  let count = 0;
+  for (const e of log) {
+    if (e.kind !== 'unit-arrive') continue;
+    const r = ROSTER.find(x => x.unit === e.unit);
+    if (r && r.type === type) count++;
+  }
+  return count + 1;
+}
+
 function confirmAddUnit(){
   if (!state || !sheetCtx || sheetCtx.type !== 'add-unit-crew') return;
   let name = sheetCtx.name;
@@ -647,9 +676,22 @@ function confirmAddUnit(){
     name = $('ma-name').value.trim();
     if (!name) return;
   }
+
+  const rosterEntry = ROSTER.find(r => r.unit === name);
+  let suggestion = null;
+  if (rosterEntry) {
+    const dueIndex = dueIndexForType(rosterEntry.type, state.log);
+    suggestion = suggestionFor(state.occupancy, rosterEntry.type, dueIndex);
+  }
+
   appendEntry(state, { t: Date.now(), kind: 'unit-arrive', unit: name, personnel: sheetCtx.personnel });
-  closeSheet();
   render();
+
+  // Suggestion or not, the natural next question after adding a unit
+  // is "where does it go" — flow straight into the assign sheet rather
+  // than closing. Dismissing it (✕ or backdrop tap) costs nothing;
+  // the unit just sits in Staging.
+  openAssignSheet(name, suggestion);
 }
 
 function handleSheetOption(opt, value){
