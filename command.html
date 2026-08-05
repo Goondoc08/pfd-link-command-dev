@@ -79,6 +79,73 @@
   .flag.urgent b{color:#fff}
   #par-banner:empty{margin:0}
 
+  /* pinned roles + command — 307.3.2(a)1 makes the IC directly
+     responsible for these rather than accounting for them through a
+     division, so they sit above the board, not inside it */
+  .rolesrow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .rolechip{flex:1;min-width:104px;background:var(--panel);border:1px solid var(--line);
+            border-radius:10px;padding:9px 11px;text-align:left;color:var(--txt);
+            font-family:inherit;cursor:pointer;min-height:48px}
+  .rolechip:active{background:var(--panel2)}
+  .rolechip .rl{font-size:10px;letter-spacing:.6px;text-transform:uppercase;
+                color:var(--faint);font-weight:700;display:block}
+  .rolechip .rv{font-size:14.5px;font-weight:700;margin-top:2px;display:block;
+                overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rolechip.set{border-color:var(--green)}
+  .rolechip.set .rv{color:var(--green)}
+
+  /* board */
+  .poshead{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--faint);
+           font-weight:700;margin:14px 0 6px}
+  .poshead:first-child{margin-top:0}
+  .unitrow{display:flex;flex-wrap:wrap;gap:8px}
+  .unittile{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+            padding:10px 13px;color:var(--txt);font-family:inherit;font-weight:700;
+            font-size:14.5px;cursor:pointer;min-height:48px}
+  .unittile:active{background:var(--line)}
+  .unittile .pc{color:var(--dim);font-weight:600;font-size:13px;margin-left:4px}
+  .board-empty{color:var(--faint);font-size:14px}
+
+  /* stepper (personnel count) */
+  .stepper{display:flex;align-items:center;gap:14px;justify-content:center;margin:10px 0}
+  .stepper button{width:48px;padding:0;font-size:22px;line-height:1}
+  .stepper .sv{font-size:26px;font-weight:800;min-width:38px;text-align:center;
+               font-variant-numeric:tabular-nums}
+
+  /* resources */
+  .resrow{display:flex;align-items:center;justify-content:space-between;gap:10px;
+          padding:9px 0;border-bottom:1px solid var(--line)}
+  .resrow:last-child{border-bottom:0}
+  .resrow .rn{font-size:14.5px;font-weight:700}
+  .restoggles{display:flex;gap:7px}
+  .restoggles button{padding:9px 12px;font-size:12.5px;min-height:40px}
+  .restoggles button.on{background:var(--green);border-color:var(--green);color:#08130c}
+
+  /* bottom sheet */
+  /* display:flex only applies while NOT hidden — a bare .sheet-backdrop{display:flex}
+     rule would win over the browser's default [hidden]{display:none} (author
+     stylesheet beats UA stylesheet at equal specificity), leaving the backdrop
+     visibly covering the screen after "closing" it. */
+  .sheet-backdrop:not([hidden]){position:fixed;inset:0;background:rgba(0,0,0,.55);
+                  z-index:30;display:flex;align-items:flex-end}
+  .sheet{width:100%;max-height:82vh;background:var(--panel);border-radius:16px 16px 0 0;
+         border:1px solid var(--line);border-bottom:0;display:flex;flex-direction:column}
+  .sheet-hd{display:flex;align-items:center;justify-content:space-between;
+            padding:14px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px}
+  .sheet-hd button{background:none;border:0;color:var(--dim);font-size:20px;
+                    min-height:auto;padding:0 4px}
+  .sheet-body{overflow-y:auto;padding:12px 16px calc(env(safe-area-inset-bottom) + 16px)}
+  .sheet-group{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--faint);
+              font-weight:700;margin:14px 0 6px}
+  .sheet-group:first-child{margin-top:2px}
+  .sheet-opt{display:block;width:100%;text-align:left;background:var(--panel2);
+             border:1px solid var(--line);border-radius:10px;padding:13px 14px;
+             margin-bottom:7px;color:var(--txt);font-family:inherit;font-size:15px;
+             font-weight:600;cursor:pointer;min-height:48px}
+  .sheet-opt:active{background:var(--line)}
+  .sheet-opt.grey{opacity:.4;pointer-events:none}
+  .sheet-opt.destructive{color:var(--red)}
+
   .noterow{display:flex;gap:9px}
   .noterow input{flex:1}
 
@@ -149,6 +216,8 @@
       </div>
     </div>
 
+    <div class="rolesrow" id="roles-row"></div>
+
     <div id="par-banner"></div>
 
     <h2>PAR</h2>
@@ -160,6 +229,19 @@
         </div>
         <button id="btn-par">PAR</button>
       </div>
+    </div>
+
+    <h2>Units</h2>
+    <div class="card">
+      <div id="board"></div>
+      <div class="btnrow">
+        <button class="primary" id="btn-add-unit">+ Unit</button>
+      </div>
+    </div>
+
+    <h2>Resources</h2>
+    <div class="card">
+      <div id="resources"></div>
     </div>
 
     <h2>Note</h2>
@@ -183,6 +265,17 @@
   <footer>Reference tool only. Not a department system of record.</footer>
 </div>
 
+<div class="sheet-backdrop" id="sheet-backdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-hd">
+      <span id="sheet-title">—</span>
+      <button type="button" id="sheet-close" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+</div>
+
+<script src="roster.js"></script>
 <script src="command.js"></script>
 </body>
 </html>
