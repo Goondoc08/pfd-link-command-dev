@@ -139,6 +139,21 @@ const LINKS = [
   },
 
   {
+    // Not yet on main — build-time only. See COMMAND-MODULE-PLAN.md.
+    category: "Command",
+    accent: "224,165,44",
+    icon: "target",
+    items: [
+      {
+        name: "Command",
+        desc: "Incident scratchpad — unofficial, this device only",
+        url: "command.html",
+        pinned: true
+      }
+    ]
+  },
+
+  {
     category: "Forms & Checklists",
     accent: "128,122,222",
     icon: "clipboard",

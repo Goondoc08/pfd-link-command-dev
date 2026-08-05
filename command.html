@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0f1216">
-<title>Command — harness check</title>
+<title>Command</title>
 <link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icon-180.png">
 <style>
   :root{
     --bg:#0f1216; --panel:#171b21; --panel2:#1e242c; --line:#2a323c;
@@ -25,29 +26,56 @@
   .bar h1{font-size:16px;font-weight:700;margin:0}
 
   h2{font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--faint);
-     margin:24px 0 9px;font-weight:700}
+     margin:22px 0 9px;font-weight:700}
 
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
   .card + .card{margin-top:10px}
+
+  label{display:block;font-size:12px;letter-spacing:.6px;text-transform:uppercase;
+        color:var(--faint);font-weight:700;margin:0 0 7px}
+  .field + .field{margin-top:16px}
+
+  select, input[type=text]{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:12px 13px;font-size:15.5px;font-family:inherit;
+    min-height:48px;-webkit-appearance:none;appearance:none;
+  }
+  select{
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%2393a1b1"><path d="M5 7l5 6 5-6z"/></svg>');
+    background-repeat:no-repeat;background-position:right 13px center;padding-right:36px;
+  }
+
+  button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+         border-radius:10px;padding:13px 18px;font-size:15.5px;font-weight:700;
+         font-family:inherit;cursor:pointer;min-height:48px}
+  button:active{background:var(--line)}
+  .primary{background:var(--green);border-color:var(--green);color:#08130c;width:100%}
+  .danger{background:transparent;border-color:var(--red);color:var(--red)}
+  .btnrow{display:flex;gap:9px;margin-top:14px}
+  .btnrow button{flex:1}
+
+  /* active incident header */
+  .inc-hdr{border-left:4px solid var(--green)}
+  .inc-hdr .occ{font-size:11px;letter-spacing:.8px;text-transform:uppercase;
+                color:var(--faint);font-weight:700}
+  .inc-hdr .addr{font-size:19px;font-weight:800;margin:3px 0 2px}
+  .inc-hdr .since{font-size:13px;color:var(--dim)}
+
+  .noterow{display:flex;gap:9px}
+  .noterow input{flex:1}
+
+  /* timeline */
+  ul.tl{list-style:none;margin:0;padding:0}
+  ul.tl li{display:flex;gap:12px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:14.5px}
+  ul.tl li:last-child{border-bottom:0}
+  ul.tl .tm{color:var(--faint);font-variant-numeric:tabular-nums;flex:0 0 auto}
+  ul.tl .tx{color:var(--txt)}
+  .empty{color:var(--faint);font-size:14px;padding:6px 2px}
 
   .flag{display:flex;gap:9px;align-items:flex-start;background:#2c2410;border:1px solid #4a3d18;
         border-radius:10px;padding:10px 12px;margin-top:14px;font-size:13.5px;color:#e5c375}
   .flag b{color:#f0d798}
 
-  .ok{color:var(--green);font-weight:700}
-  .bad{color:var(--red);font-weight:700}
-  .row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;
-       border-bottom:1px solid var(--line);font-size:14.5px}
-  .row:last-child{border-bottom:0}
-  .row span:first-child{color:var(--dim)}
-
-  button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
-         border-radius:10px;padding:13px 16px;font-size:15px;font-weight:600;
-         font-family:inherit;cursor:pointer;min-height:48px}
-  button:active{background:var(--line)}
-  .btns{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
-
-  code{background:var(--panel2);padding:2px 6px;border-radius:5px;font-size:13px}
   footer{margin-top:30px;font-size:11.5px;color:var(--faint);text-align:center;line-height:1.6}
 </style>
 </head>
@@ -55,98 +83,69 @@
 
 <div class="bar"><div class="bar-in">
   <a href="index.html">‹ Back</a>
-  <h1>Command — harness check</h1>
+  <h1>Command</h1>
 </div></div>
 
 <div class="wrap">
 
-  <div class="flag">
-    <span>▲</span>
-    <span><b>This is not the Command module.</b> It is a placeholder that proves the local
-    test setup works. Phase 1 replaces everything below.</span>
-  </div>
-
-  <h2>Environment</h2>
-  <div class="card">
-    <div class="row"><span>Served over</span><b id="proto">—</b></div>
-    <div class="row"><span>localStorage</span><b id="ls">—</b></div>
-    <div class="row"><span>Wake Lock API</span><b id="wake">—</b></div>
-    <div class="row"><span>Service worker registered</span><b id="sw">—</b></div>
-  </div>
-
-  <h2>Persistence check</h2>
-  <div class="card">
-    <div class="row"><span>Counter (survives reload)</span><b id="count">—</b></div>
-    <div class="row"><span>First written</span><b id="since">—</b></div>
-    <div class="btns">
-      <button id="bump">Increment</button>
-      <button id="clear">Clear</button>
+  <div id="start-screen" hidden>
+    <div class="flag">
+      <span>▲</span>
+      <span><b>Unofficial.</b> A scratchpad for the IC's own device — not a department
+      system of record. Nothing here is shared or synced.</span>
     </div>
-    <p style="font-size:13px;color:var(--dim);margin:12px 0 0">
-      Increment, then reload. If the counter holds, the storage the module depends on works
-      in this browser. Uses key <code>pfd-cmd-harness</code> — not a real incident key.
-    </p>
+
+    <h2>Start Incident</h2>
+    <div class="card">
+      <div class="field">
+        <label for="f-occ">Occupancy</label>
+        <select id="f-occ">
+          <option value="single-family">Single Family</option>
+          <option value="multi-family">Multi-Family</option>
+          <option value="commercial">Commercial / Big-Box</option>
+          <option value="strip-mall">Strip Mall</option>
+          <option value="high-rise">High Rise</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-addr">Address <span style="text-transform:none;font-weight:400">(optional)</span></label>
+        <input type="text" id="f-addr" placeholder="1420 Main St" autocomplete="off">
+      </div>
+      <div class="btnrow">
+        <button class="primary" id="btn-start">Start Incident</button>
+      </div>
+    </div>
   </div>
 
-  <footer>
-    Unofficial. Not a department system of record.
-  </footer>
+  <div id="active-screen" hidden>
+    <div class="card inc-hdr">
+      <div class="occ" id="a-occ">—</div>
+      <div class="addr" id="a-addr">—</div>
+      <div class="since" id="a-since">—</div>
+    </div>
+
+    <h2>Note</h2>
+    <div class="card">
+      <div class="noterow">
+        <input type="text" id="f-note" placeholder="What happened" autocomplete="off">
+        <button id="btn-note">Add</button>
+      </div>
+    </div>
+
+    <h2>Timeline</h2>
+    <div class="card">
+      <ul class="tl" id="timeline"></ul>
+    </div>
+
+    <div class="btnrow">
+      <button class="danger" id="btn-end">End Incident</button>
+    </div>
+  </div>
+
+  <footer>Reference tool only. Not a department system of record.</footer>
 </div>
 
-<script>
-/* Deliberately does NOT register a service worker. Registering sw.js on localhost would
-   cache the shell and serve stale files while developing. */
-
-const KEY = 'pfd-cmd-harness';
-const $ = id => document.getElementById(id);
-
-/* ---- environment ---- */
-const secure = location.protocol === 'https:' || location.hostname === 'localhost';
-$('proto').textContent = location.protocol + '//' + location.host;
-$('proto').className = secure ? 'ok' : 'bad';
-
-let store = null;
-try {
-  localStorage.setItem('__t', '1');
-  localStorage.removeItem('__t');
-  store = true;
-} catch (e) { store = false; }
-$('ls').textContent = store ? 'available' : 'BLOCKED';
-$('ls').className = store ? 'ok' : 'bad';
-
-const wake = 'wakeLock' in navigator;
-$('wake').textContent = wake ? 'available' : 'not supported';
-$('wake').className = wake ? 'ok' : 'bad';
-
-if (navigator.serviceWorker) {
-  navigator.serviceWorker.getRegistrations().then(rs => {
-    const here = rs.filter(r => r.scope.includes(location.host));
-    $('sw').textContent = here.length ? here.length + ' — unregister before trusting edits' : 'none (good)';
-    $('sw').className = here.length ? 'bad' : 'ok';
-  });
-} else {
-  $('sw').textContent = 'unsupported';
-}
-
-/* ---- persistence ---- */
-function read(){
-  try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; }
-}
-function paint(){
-  const d = read();
-  $('count').textContent = d ? d.n : '0';
-  $('since').textContent = d
-    ? new Date(d.first).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})
-    : '—';
-}
-$('bump').onclick = () => {
-  const d = read() || { n: 0, first: Date.now() };
-  d.n += 1;
-  localStorage.setItem(KEY, JSON.stringify(d));
-  paint();
-};
-$('clear').onclick = () => { localStorage.removeItem(KEY); paint(); };
-paint();
-</script>
+<script src="command.js"></script>
 </body>
 </html>
