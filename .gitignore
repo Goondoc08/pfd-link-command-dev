@@ -6,6 +6,11 @@ desktop.ini
 .vscode/
 .idea/
 
+# Local-only reference: PFD procedures and deployment training bulletins.
+# 307 and 401 are Lexipol-copyrighted; this repo is public. Kept on disk to
+# build the Command module against, never committed.
+Command Reference/
+
 # scratch + source spreadsheets (the schedule is derived into mando.js)
 _*.json
 *.xlsx
