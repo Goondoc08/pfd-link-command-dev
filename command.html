@@ -79,6 +79,21 @@
   .flag.urgent b{color:#fff}
   #par-banner:empty{margin:0}
 
+  #par-suggestion:empty{margin:0}
+
+  /* checklist */
+  ul.ck{list-style:none;margin:0;padding:0}
+  ul.ck li{display:flex;gap:11px;align-items:flex-start;padding:11px 2px;
+           border-bottom:1px solid var(--line);cursor:pointer;min-height:48px}
+  ul.ck li:last-child{border-bottom:0}
+  ul.ck .bx{width:19px;height:19px;border:2px solid var(--faint);border-radius:5px;
+            flex:0 0 auto;margin-top:2px}
+  ul.ck li.done .bx{background:var(--green);border-color:var(--green);position:relative}
+  ul.ck li.done .bx::after{content:"";position:absolute;left:4px;top:0px;width:5px;height:9px;
+                           border:solid #08130c;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  ul.ck span.lb{font-size:14.5px;padding-top:1px}
+  ul.ck li.done span.lb{color:var(--dim);text-decoration:line-through}
+
   /* pinned roles + command — 307.3.2(a)1 makes the IC directly
      responsible for these rather than accounting for them through a
      division, so they sit above the board, not inside it */
@@ -216,9 +231,11 @@
       </div>
     </div>
 
+    <div class="rolesrow" id="modes-row"></div>
     <div class="rolesrow" id="roles-row"></div>
 
     <div id="par-banner"></div>
+    <div id="par-suggestion"></div>
 
     <h2>PAR</h2>
     <div class="card">
@@ -242,6 +259,11 @@
     <h2>Resources</h2>
     <div class="card">
       <div id="resources"></div>
+    </div>
+
+    <h2>Next Considerations</h2>
+    <div class="card">
+      <ul class="ck" id="checklist"></ul>
     </div>
 
     <h2>Note</h2>
@@ -276,6 +298,7 @@
 </div>
 
 <script src="roster.js"></script>
+<script src="benchmarks.js"></script>
 <script src="command.js"></script>
 </body>
 </html>

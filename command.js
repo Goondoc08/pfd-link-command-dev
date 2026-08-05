@@ -2,7 +2,9 @@
    Phase 1: skeleton and the log.
    Phase 2: elapsed clock, PAR countdown, Wake Lock.
    Phase 3: accountability board, roles, command transfer, resources.
-   Reads ROSTER / SPECIAL_UNITS / POSITIONS from roster.js.
+   Phase 4: PAR reasons, command/operational mode, per-occupancy benchmarks.
+   Reads ROSTER / SPECIAL_UNITS / POSITIONS from roster.js and
+   BENCHMARKS_* / COMMAND_MODES / OP_MODES / PAR_REASONS from benchmarks.js.
 
    The event log is the database. Every action appends an immutable entry;
    the screen is a projection of that array, re-rendered from scratch on
@@ -69,8 +71,12 @@ function newIncident(occupancy, address){
     startedAt: now,
     occupancy,
     address: address || '',
-    commandMode: null,
-    opMode: null,
+    // Command mode and operational mode are NOT stored here — like
+    // everything else on the board, they're derived by replaying the
+    // log's 'command-mode' / 'op-mode' entries (see deriveBoard). A
+    // mutable field alongside the log is exactly the thing the plan's
+    // architecture rule warns against.
+    //
     // The 15-minute PAR requirement (307.3.2(g)1(f)) runs continuously
     // from the moment command is established, so the clock starts here
     // rather than waiting for a separate "start PAR" action.
@@ -95,6 +101,11 @@ function roleLabel(role){
   return role;
 }
 
+function modeLabel(list, value){
+  const m = list.find(x => x.value === value);
+  return m ? m.label : value;
+}
+
 function describeEntry(e){
   switch (e.kind) {
     case 'incident-start':
@@ -103,7 +114,7 @@ function describeEntry(e){
     case 'note':
       return e.text;
     case 'par':
-      return 'PAR complete';
+      return 'PAR complete' + (e.reason ? ' — ' + e.reason : '');
     case 'unit-arrive':
       return e.unit + ' (' + e.personnel + ') on scene';
     case 'unit-split':
@@ -123,6 +134,12 @@ function describeEntry(e){
              (e.state === 'onScene' ? 'on scene' : 'requested');
     case 'command-transfer':
       return 'Command transferred to ' + e.to;
+    case 'command-mode':
+      return 'Command mode: ' + modeLabel(COMMAND_MODES, e.mode);
+    case 'op-mode':
+      return 'Operational mode: ' + modeLabel(OP_MODES, e.mode);
+    case 'benchmark':
+      return e.label;
     case 'incident-end':
       return 'Incident ended';
     default:
@@ -141,7 +158,13 @@ function deriveBoard(log){
   const splitsOf = {};     // base unit name -> [halfName, halfName] while split
   const roles = { safety: null, accountability: null };
   const resources = { fmo: {}, centerpoint: {} };
+  const benchmarksDone = {}; // key -> timestamp completed
   let commandTransferredTo = null;
+  let commandMode = null;
+  let opMode = null;
+  let lastPar = null;
+  let lastDefensiveAt = null;
+  let lastUnderControlAt = null;
 
   for (const e of log) {
     switch (e.kind) {
@@ -178,11 +201,40 @@ function deriveBoard(log){
       case 'command-transfer':
         commandTransferredTo = e.to;
         break;
+      case 'command-mode':
+        commandMode = e.mode;
+        break;
+      case 'op-mode':
+        opMode = e.mode;
+        if (e.mode === 'defensive') lastDefensiveAt = e.t;
+        break;
+      case 'benchmark':
+        benchmarksDone[e.key] = e.t;
+        if (e.key === 'under-control') lastUnderControlAt = e.t;
+        break;
+      case 'par':
+        lastPar = e.t;
+        break;
       default:
         break;
     }
   }
-  return { units, splitsOf, roles, resources, commandTransferredTo };
+
+  // A PAR suggestion is "live" if defensive mode or fire-under-control
+  // happened more recently than the last completed PAR — once a new PAR
+  // logs (for any reason), it naturally stops being suggested. No extra
+  // dismiss state needed; this falls straight out of replaying the log.
+  let parSuggestion = null;
+  if (lastDefensiveAt !== null && (lastPar === null || lastDefensiveAt > lastPar)) {
+    parSuggestion = 'Mode changed to defensive';
+  } else if (lastUnderControlAt !== null && (lastPar === null || lastUnderControlAt > lastPar)) {
+    parSuggestion = 'Fire declared under control';
+  }
+
+  return {
+    units, splitsOf, roles, resources, benchmarksDone,
+    commandTransferredTo, commandMode, opMode, parSuggestion
+  };
 }
 
 function defaultCrewFor(name){
@@ -366,10 +418,44 @@ function renderRoles(){
       <span class="rl">Accountability</span><span class="rv">${escapeHTML(roles.accountability || 'Not set')}</span>
     </button>
     <button type="button" class="rolechip${commandTransferredTo ? ' set' : ''}" data-role-chip="command">
-      <span class="rl">Command</span><span class="rv">${escapeHTML(commandTransferredTo || 'IC')}</span>
+      <span class="rl">IC</span><span class="rv">${escapeHTML(commandTransferredTo || 'This unit')}</span>
     </button>
   `;
 }
+
+/* ---------- command mode / operational mode (401.3) ---------- */
+/* Kept visually and structurally separate from the IC chip above —
+   "who has command" and "what posture command has declared" are two
+   different facts, and 401 already calls one of them "command mode",
+   so reusing that word for the IC chip would be confusing under
+   exactly the conditions this module has to work in. */
+
+function renderModes(){
+  const { commandMode, opMode } = deriveBoard(state.log);
+  $('modes-row').innerHTML = `
+    <button type="button" class="rolechip${commandMode ? ' set' : ''}" data-mode-chip="command-mode">
+      <span class="rl">Cmd Mode</span><span class="rv">${escapeHTML(commandMode ? modeLabel(COMMAND_MODES, commandMode) : 'Not set')}</span>
+    </button>
+    <button type="button" class="rolechip${opMode ? ' set' : ''}" data-mode-chip="op-mode">
+      <span class="rl">Op Mode</span><span class="rv">${escapeHTML(opMode ? modeLabel(OP_MODES, opMode) : 'Not set')}</span>
+    </button>
+  `;
+}
+
+function openModeSheet(kind){
+  const list = kind === 'command-mode' ? COMMAND_MODES : OP_MODES;
+  const title = kind === 'command-mode' ? 'Command Mode' : 'Operational Mode';
+  sheetCtx = { type: 'mode', kind };
+  openSheet(title, list.map(m =>
+    `<button type="button" class="sheet-opt" data-opt="mode-pick" data-value="${escapeHTML(m.value)}">${escapeHTML(m.label)}</button>`
+  ).join(''));
+}
+
+$('modes-row').addEventListener('click', e => {
+  const chip = e.target.closest('[data-mode-chip]');
+  if (!chip || !state) return;
+  openModeSheet(chip.dataset.modeChip);
+});
 
 function openRoleSheet(role){
   const { units } = deriveBoard(state.log);
@@ -572,6 +658,17 @@ function handleSheetOption(opt, value){
     appendEntry(state, { t: Date.now(), kind: 'role', role: sheetCtx.role, who: value });
     closeSheet(); render(); return;
   }
+  if (opt === 'mode-pick') {
+    appendEntry(state, { t: Date.now(), kind: sheetCtx.kind, mode: value });
+    closeSheet(); render(); return;
+  }
+  if (opt === 'par-reason') {
+    appendEntry(state, { t: Date.now(), kind: 'par', reason: value, result: 'complete' });
+    state.parDue = Date.now() + state.parIntervalMin * 60000;
+    lastChimedParDue = null;
+    saveState(state);
+    closeSheet(); render(); return;
+  }
   if (opt === 'assign-pick') {
     appendEntry(state, { t: Date.now(), kind: 'assign', unit: sheetCtx.unit, to: value });
     closeSheet(); render(); return;
@@ -654,6 +751,41 @@ $('resources').addEventListener('click', e => {
   render();
 });
 
+/* ---------- next considerations (401.3, per occupancy) ---------- */
+/* One-directional: checking an item logs it done; tapping a done item
+   is a no-op — a completed 360 doesn't become undone. Reversing a
+   mistaken tap is what Phase 7's undo-last-action is for. */
+
+function renderChecklist(){
+  const { benchmarksDone } = deriveBoard(state.log);
+  const items = benchmarksFor(state.occupancy);
+  $('checklist').innerHTML = items.map(b => {
+    const done = !!benchmarksDone[b.key];
+    return `<li class="${done ? 'done' : ''}" data-benchmark="${escapeHTML(b.key)}" data-label="${escapeHTML(b.label)}">
+      <i class="bx"></i><span class="lb">${escapeHTML(b.label)}</span>
+    </li>`;
+  }).join('');
+}
+
+$('checklist').addEventListener('click', e => {
+  const li = e.target.closest('[data-benchmark]');
+  if (!li || li.classList.contains('done') || !state) return;
+  appendEntry(state, { t: Date.now(), kind: 'benchmark', key: li.dataset.benchmark, label: li.dataset.label });
+  render();
+});
+
+/* ---------- PAR suggestion ---------- */
+/* Never a forced modal — see the plan. Just a dismissible-by-nature
+   banner that stops showing once any PAR logs, computed fresh from the
+   log by deriveBoard rather than tracked as separate UI state. */
+
+function renderParSuggestion(){
+  const { parSuggestion } = deriveBoard(state.log);
+  $('par-suggestion').innerHTML = parSuggestion
+    ? `<div class="flag suggest"><span>▲</span><span><b>Consider a PAR.</b> ${escapeHTML(parSuggestion)}.</span></div>`
+    : '';
+}
+
 /* ---------- render ---------- */
 
 const startScreen  = $('start-screen');
@@ -663,9 +795,12 @@ function render(){
   if (!state) {
     startScreen.hidden = false;
     activeScreen.hidden = true;
+    $('modes-row').innerHTML = '';
     $('roles-row').innerHTML = '';
     $('board').innerHTML = '';
     $('resources').innerHTML = '';
+    $('checklist').innerHTML = '';
+    $('par-suggestion').innerHTML = '';
     closeSheet();
     return;
   }
@@ -679,9 +814,12 @@ function render(){
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
+  renderModes();
   renderRoles();
   renderBoard();
   renderResources();
+  renderChecklist();
+  renderParSuggestion();
 
   const tl = $('timeline');
   if (state.log.length === 0) {
@@ -725,11 +863,13 @@ $('btn-start').addEventListener('click', () => {
 
 $('btn-par').addEventListener('click', () => {
   if (!state) return;
-  appendEntry(state, { t: Date.now(), kind: 'par', result: 'complete' });
-  state.parDue = Date.now() + state.parIntervalMin * 60000;
-  lastChimedParDue = null;
-  saveState(state);
-  render();
+  // 307.3.2(g)1's trigger list — picking one is the same tap that
+  // completes the PAR and resets the clock. See handleSheetOption's
+  // 'par-reason' case.
+  sheetCtx = { type: 'par' };
+  openSheet('PAR — Reason', PAR_REASONS.map(r =>
+    `<button type="button" class="sheet-opt" data-opt="par-reason" data-value="${escapeHTML(r)}">${escapeHTML(r)}</button>`
+  ).join(''));
 });
 
 $('btn-note').addEventListener('click', addNote);

@@ -5,8 +5,11 @@ merged to `main` *and* `sw.js` `CACHE` is bumped. Keep it that way until it's be
 real incident-shaped drill.
 
 Status: plan locked Aug 5 2026, revised same day against the SOG set in `Command Reference/`.
-Phase 1 (skeleton and the log), Phase 2 (clocks, PAR, Wake Lock), and Phase 3 (accountability
-board, roles, command transfer, resources) built and verified in-browser Aug 5 2026.
+Phase 1 (skeleton and the log), Phase 2 (clocks, PAR, Wake Lock), Phase 3 (accountability
+board, roles, command transfer, resources), and Phase 4 (PAR reasons, command/operational
+mode, per-occupancy benchmarks) built and verified in-browser Aug 5 2026. All six source
+documents in `Command Reference/` have now been read in full, including the Commercial/
+Big-Box and High Rise bulletins.
 
 ---
 
@@ -405,10 +408,20 @@ Small enough not to block Phase 1–2, but needed by the phase noted.
   and not a number pad. Engines 4? Medics 2? Ladders 4? Squad?
 - **Safety Officer** (Phase 3) — in practice, is it a Battalion Chief, a designated company
   officer, or varies? Affects whether the picker offers units or free text first.
-- **Level 2 staging** (Phase 4) — worth a Staging Area Manager designation, or rare enough
-  in Pearland to leave as free text?
-- **Benchmark list** (Phase 4) — 401 gives the task assignments; is there a department
-  benchmark list beyond 360 / water supply / all clear / under control?
+- **Level 2 staging** — worth a Staging Area Manager designation, or rare enough in Pearland
+  to leave as free text? (Level 2 Staging itself is already a position on the assign sheet;
+  this is only about whether it deserves its own pinned role like Safety/Accountability.)
+- ~~**Benchmark list**~~ — resolved. 25-10 and 25-12 were read in full for Phase 4; the
+  per-occupancy checklist in `benchmarks.js` is sourced directly from them (2½" line/Charlie
+  sector/roof division for commercial; attack stairwell/high-rise kit/standpipe/staging
+  2-floors-below/lobby sector/elevators secured/evac stairwell for high-rise). Single-Family,
+  Multi-Family, and Strip Mall get no additions beyond core — 21-03/25-09 don't describe
+  benchmark-shaped content beyond what 401.3's core list already covers. Strip Mall appears
+  as a column in all four deployment bulletins (it doesn't have its own dedicated bulletin
+  the way Commercial/Big-Box and High Rise do) and reads as functionally identical to
+  Multi-Family/Commercial in every one of them — no distinct purpose statement like High
+  Rise's "four stories and above" or Commercial's 2½" hose requirement — so it gets core only
+  rather than an invented differentiator.
 
 ## Deferred, deliberately
 
