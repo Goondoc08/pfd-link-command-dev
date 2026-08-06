@@ -5,6 +5,7 @@
    Phase 4: PAR reasons, command/operational mode, per-occupancy benchmarks.
    Phase 5: deployment-model suggestions on add-unit, by due order.
    Phase 6: plain-text export, copy to clipboard, Web Share.
+   Phase 7: undo, save/load hardening, FAQ.
    Reads ROSTER / SPECIAL_UNITS / POSITIONS from roster.js,
    BENCHMARKS_* / COMMAND_MODES / OP_MODES / PAR_REASONS from benchmarks.js,
    and SUGGESTIONS / suggestionFor from suggestions.js.
@@ -37,7 +38,14 @@ const OCC_LABEL = {
 // — those run immediately as the file is parsed, so $ has to exist
 // before them. Everything else in this file is a function declaration
 // (hoisted), so it can reference $ regardless of where it's defined.
+//
+// loadNotice must ALSO live up here, ahead of `let state = loadState()`
+// below: loadState() reads loadNotice, and that call happens the moment
+// this line executes — a `let` declared further down would still be in
+// its temporal dead zone at that point (this bit twice now; see the
+// Phase 3 commit for the first one with `$` itself).
 const $ = id => document.getElementById(id);
+let loadNotice = null;
 let state = loadState();
 
 /* ---------- state ---------- */
@@ -47,19 +55,37 @@ function loadState(){
   try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
   if (!raw) return null;
   let d;
-  try { d = JSON.parse(raw); } catch (e) { return null; }
+  try { d = JSON.parse(raw); } catch (e) {
+    loadNotice = 'A saved incident on this device was corrupted and could not be recovered. It has been cleared.';
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e2) {}
+    return null;
+  }
   if (!d || d.v !== SCHEMA_V || !Array.isArray(d.log)) {
     // A future version (or corrupt write) that this code can't read is
     // discarded outright rather than half-loaded. An incident in progress
     // during an app update is an edge case worth this line, not cleverness.
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    loadNotice = 'A saved incident from a different version of this page could not be loaded and has been cleared from this device.';
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e2) {}
     return null;
   }
   return d;
 }
 
 function saveState(d){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+    if ($('save-warning')) $('save-warning').innerHTML = '';
+  } catch (e) {
+    // Storage can fail (private browsing, quota exceeded) — surface it
+    // rather than silently losing the action that triggered this save.
+    // The in-memory `state` object still has the change; only the next
+    // reload is at risk, so this is a warning, not a crash.
+    if ($('save-warning')) {
+      $('save-warning').innerHTML =
+        '<div class="flag urgent"><span>▲</span><span><b>Could not save to this device.</b> ' +
+        'Storage may be full or blocked. Keep this tab open, and export often.</span></div>';
+    }
+  }
 }
 
 function clearState(){
@@ -944,6 +970,13 @@ function render(){
     $('checklist').innerHTML = '';
     $('par-suggestion').innerHTML = '';
     $('export-text').value = '';
+    $('save-warning').innerHTML = '';
+    $('btn-undo').hidden = true;
+    $('undo-caption').textContent = '';
+    if (loadNotice) {
+      $('load-notice').innerHTML =
+        '<div class="flag"><span>▲</span><span>' + escapeHTML(loadNotice) + '</span></div>';
+    }
     closeSheet();
     return;
   }
@@ -964,6 +997,7 @@ function render(){
   renderChecklist();
   renderParSuggestion();
   renderExport();
+  renderUndo();
 
   const tl = $('timeline');
   if (state.log.length === 0) {
@@ -986,6 +1020,78 @@ function escapeHTML(s){
   }[c]));
 }
 
+/* ---------- undo ---------- */
+/* The plan's stand-in for confirmation dialogs on the critical path:
+   "No confirmation dialogs on the critical path — undo instead." One
+   entry at a time, oldest bound at incident-start (an incident always
+   needs at least that one entry to exist). */
+
+// Reconstructs parDue as if the last PAR never happened — anchored to
+// whichever PAR is now last in the log (or incident start if none),
+// exactly like a real PAR reset is anchored to "now" at completion
+// time. Safe to call after ANY undo, not just a PAR one: if the entry
+// removed wasn't a PAR, the last PAR timestamp in the log is unchanged
+// and this recomputes the same value that was already there.
+function recomputeParDue(){
+  let lastParAt = null;
+  state.log.forEach(e => { if (e.kind === 'par') lastParAt = e.t; });
+  state.parDue = (lastParAt !== null ? lastParAt : state.startedAt) + state.parIntervalMin * 60000;
+  lastChimedParDue = null;
+}
+
+function renderUndo(){
+  const btn = $('btn-undo');
+  const caption = $('undo-caption');
+  // log[0] is always incident-start — never undoable, an incident needs it.
+  if (state.log.length <= 1) {
+    btn.hidden = true;
+    caption.textContent = '';
+    return;
+  }
+  const last = state.log[state.log.length - 1];
+  btn.hidden = false;
+  caption.textContent = 'Will undo: ' + describeEntry(last);
+}
+
+$('btn-undo').addEventListener('click', () => {
+  if (!state || state.log.length <= 1) return;
+  state.log.pop();
+  recomputeParDue();
+  saveState(state);
+  render();
+});
+
+/* ---------- FAQ ---------- */
+
+const FAQ_HTML = `
+  <p><b>What is this?</b><br>An incident scratchpad for the IC's own phone or tablet.
+  It tracks units, positions, and a timeline while you work an incident, and formats
+  it into text you can paste into a report afterward.</p>
+  <p><b>Is it official?</b><br>No. It's not a Pearland Fire Department system, and
+  nothing here overrides the department's own SOGs. Suggested assignments are drawn
+  from the department's own deployment training bulletins, but they're suggestions
+  only — one tap to accept, or ignore them and pick anything else. Nothing is ever
+  assigned automatically.</p>
+  <p><b>Does it sync anywhere?</b><br>No. No backend, no login, no other device sees
+  this. Everything lives only in this browser's storage on this device.</p>
+  <p><b>What happens to the data?</b><br>Ending an incident clears it from this
+  device for good. Export the timeline first if you want to keep it — see the
+  Export card near the bottom of an active incident.</p>
+  <p><b>Will it alert me if a PAR is overdue?</b><br>The countdown is always correct
+  the moment you look at the screen, even after the phone was locked. But a sound or
+  notification while the screen is off is <b>not guaranteed</b> — iOS in particular
+  can silently block background audio for a locked web app. Don't rely on hearing a
+  chime; rely on checking the screen.</p>
+  <p><b>What if this page updates while I have an incident open?</b><br>If a future
+  version can't read an older saved incident, it's discarded outright rather than
+  half-loaded, and you'll see a plain notice about it on the start screen.</p>
+`;
+
+$('btn-faq').addEventListener('click', () => {
+  sheetCtx = { type: 'faq' };
+  openSheet('About Command', FAQ_HTML);
+});
+
 /* ---------- actions ---------- */
 
 $('btn-start').addEventListener('click', () => {
@@ -995,6 +1101,8 @@ $('btn-start').addEventListener('click', () => {
   saveState(state);
   $('f-addr').value = '';
   lastChimedParDue = null;
+  loadNotice = null; // stale on a second start within the same page session
+  $('load-notice').innerHTML = '';
 
   // Both need a real user gesture to work later; this click is it.
   ensureAudioCtx();

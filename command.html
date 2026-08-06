@@ -24,6 +24,20 @@
   .bar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px}
   .bar a{color:var(--dim);text-decoration:none;font-size:14px}
   .bar h1{font-size:16px;font-weight:700;margin:0}
+  /* min-height:28px here is load-bearing, not decorative — the generic
+     button{min-height:48px} rule below would otherwise win on that one
+     property (class beats element on height, but neither rule touches
+     min-height until this one does), stretching this into a 28×48 pill
+     instead of the small circle it's meant to be. 28px matches the
+     equivalent info button already established in index.html — this is
+     a low-stakes, non-critical-path affordance, not something a
+     stressed IC needs at arm's length, so it's exempt from the 48px
+     tap-target rule that applies to PAR/assign/Undo. */
+  .infobtn{margin-left:auto;flex:0 0 auto;width:28px;height:28px;min-height:28px;
+           border-radius:50%;background:none;border:1.6px solid var(--amber);color:var(--amber);
+           font:italic 700 15px/1 Georgia,"Times New Roman",serif;cursor:pointer;
+           display:flex;align-items:center;justify-content:center;padding:0 0 1px 0}
+  .infobtn:active{background:rgba(224,165,44,.16)}
 
   h2{font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--faint);
      margin:22px 0 9px;font-weight:700}
@@ -185,6 +199,14 @@
         border-radius:10px;padding:10px 12px;margin-top:14px;font-size:13.5px;color:#e5c375}
   .flag b{color:#f0d798}
 
+  .tlhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  /* Visually compact (small font, tight padding) but still a real
+     48px tap target — Undo is a genuine corrective action a stressed
+     IC needs reliably, unlike the info button above. */
+  .undo{padding:6px 14px;min-height:48px;font-size:13px;background:var(--panel2)}
+  .undo-caption{font-size:12px;color:var(--faint);margin:2px 0 9px}
+  .undo-caption:empty{margin:0}
+
   footer{margin-top:30px;font-size:11.5px;color:var(--faint);text-align:center;line-height:1.6}
 </style>
 </head>
@@ -193,11 +215,13 @@
 <div class="bar"><div class="bar-in">
   <a href="index.html">‹ Back</a>
   <h1>Command</h1>
+  <button type="button" id="btn-faq" class="infobtn" aria-label="About this tool">i</button>
 </div></div>
 
 <div class="wrap">
 
   <div id="start-screen" hidden>
+    <div id="load-notice"></div>
     <div class="flag">
       <span>▲</span>
       <span><b>Unofficial.</b> A scratchpad for the IC's own device — not a department
@@ -228,6 +252,7 @@
   </div>
 
   <div id="active-screen" hidden>
+    <div id="save-warning"></div>
     <div class="card inc-hdr">
       <div class="occ" id="a-occ">—</div>
       <div class="addr" id="a-addr">—</div>
@@ -283,7 +308,11 @@
       </div>
     </div>
 
-    <h2>Timeline</h2>
+    <div class="tlhead">
+      <h2 style="margin:22px 0 0">Timeline</h2>
+      <button type="button" id="btn-undo" class="undo" hidden>Undo</button>
+    </div>
+    <div id="undo-caption" class="undo-caption"></div>
     <div class="card">
       <ul class="tl" id="timeline"></ul>
     </div>
