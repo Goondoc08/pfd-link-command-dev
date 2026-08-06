@@ -47,6 +47,14 @@
   /* bottom padding clears the floating share button */
   .wrap{max-width:760px;margin:0 auto;padding:0 14px 96px}
 
+  /* ---------- screen flip (Command module entry/return) ---------- */
+  html{perspective:1100px}
+  body{backface-visibility:hidden;transform-origin:center}
+  body.flip-out{animation:pflipOut .34s cubic-bezier(.4,0,.2,1) forwards;height:100vh;overflow:hidden}
+  body.flip-in{animation:pflipIn .34s cubic-bezier(.4,0,.2,1);height:100vh;overflow:hidden}
+  @keyframes pflipOut{from{transform:rotateY(0)}to{transform:rotateY(-90deg)}}
+  @keyframes pflipIn{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
+
   /* ---------- header ---------- */
   header{
     position:sticky; top:0; z-index:20; background:var(--bg);
@@ -66,6 +74,17 @@
   }
   .infobtn:active{background:rgba(224,135,58,.16)}
   .brand h1{font-size:17px;font-weight:700;letter-spacing:.2px;margin:0}
+  /* Command module entry — siren red, sits between the title and the
+     info button, sized to the header row rather than the 48px tap-target
+     rule (matches .infobtn's exemption for the same reason). */
+  .cmdbtn{
+    flex:0 0 auto;height:28px;padding:0 12px;margin-left:10px;
+    background:var(--red);border:0;border-radius:6px;color:#fff;
+    font-size:11.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+    text-decoration:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cmdbtn:active{background:#c22e25}
   /* shift bar */
   .shiftbar{
     display:flex;align-items:center;gap:10px;width:100%;
@@ -332,12 +351,35 @@
 </style>
 </head>
 <body>
+<script>
+// Mirrors the flip-out this page plays on the way into Command, only when
+// actually returning from it — a cold load (home screen tap, bookmark)
+// should not flip. See the matching script in command.html.
+if (sessionStorage.getItem('pfd-flip-return')) {
+  sessionStorage.removeItem('pfd-flip-return');
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.body.classList.add('flip-in');
+    // flip-in also carries height:100vh;overflow:hidden for the duration
+    // of the animation — if animationend never fires (backgrounded tab,
+    // stalled compositor), that has to come off on a timer or the page
+    // is stuck unscrollable. See index.html's cmdbtn handler for the
+    // same reasoning on the other side of this transition.
+    let cleaned = false;
+    const clean = () => { if (cleaned) return; cleaned = true; document.body.classList.remove('flip-in'); };
+    document.body.addEventListener('animationend', function once(e){
+      if (e.animationName === 'pflipIn') { document.body.removeEventListener('animationend', once); clean(); }
+    });
+    setTimeout(clean, 400);
+  }
+}
+</script>
 
 <header>
   <div class="hdr-in">
     <div class="brand">
       <img src="icon-192.png" alt="" class="brandmark">
       <h1>Pearland Fire Link</h1>
+      <a class="cmdbtn" id="cmdbtn" href="command.html">Command</a>
       <button class="infobtn" id="infobtn" type="button"
               aria-label="Tips and known limitations">i</button>
     </div>
@@ -766,6 +808,23 @@ function openFaq(){
 function closeFaq(){ faqWrap.hidden = true; }
 
 document.getElementById('infobtn').onclick = openFaq;
+
+/* ---------- Command module entry (screen flip) ---------- */
+document.getElementById('cmdbtn').addEventListener('click', e => {
+  e.preventDefault();
+  const url = e.currentTarget.href;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { location.href = url; return; }
+  document.body.classList.add('flip-out');
+  // animationend won't fire if the tab is backgrounded or the compositor
+  // stalls mid-tap — a stranded IC on a locked phone is worse than a
+  // skipped animation, so a timer backs it up either way.
+  let navigated = false;
+  const go = () => { if (navigated) return; navigated = true; location.href = url; };
+  document.body.addEventListener('animationend', function once(ev){
+    if (ev.animationName === 'pflipOut') { document.body.removeEventListener('animationend', once); go(); }
+  });
+  setTimeout(go, 400);
+});
 document.getElementById('faq-x').onclick   = closeFaq;
 faqWrap.onclick = e => { if (e.target === faqWrap) closeFaq(); };   // backdrop tap
 document.addEventListener('keydown', e => {

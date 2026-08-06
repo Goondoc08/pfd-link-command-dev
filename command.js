@@ -1092,6 +1092,24 @@ $('btn-faq').addEventListener('click', () => {
   openSheet('About Command', FAQ_HTML);
 });
 
+/* ---------- back to index (screen flip) ---------- */
+$('btn-back').addEventListener('click', e => {
+  e.preventDefault();
+  const url = e.currentTarget.href;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { location.href = url; return; }
+  sessionStorage.setItem('pfd-flip-return', '1');
+  document.body.classList.add('flip-out');
+  // animationend won't fire if the tab is backgrounded or the compositor
+  // stalls mid-tap — see index.html's matching handler for why this
+  // always has a timer backing it up.
+  let navigated = false;
+  const go = () => { if (navigated) return; navigated = true; location.href = url; };
+  document.body.addEventListener('animationend', function once(ev){
+    if (ev.animationName === 'pflipOut') { document.body.removeEventListener('animationend', once); go(); }
+  });
+  setTimeout(go, 400);
+});
+
 /* ---------- actions ---------- */
 
 $('btn-start').addEventListener('click', () => {

@@ -19,6 +19,14 @@
        padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}
   .wrap{max-width:760px;margin:0 auto;padding:0 14px}
 
+  /* ---------- screen flip (entry from / return to index.html) ---------- */
+  html{perspective:1100px}
+  body{backface-visibility:hidden;transform-origin:center}
+  body.flip-out{animation:pflipOut .34s cubic-bezier(.4,0,.2,1) forwards;height:100vh;overflow:hidden}
+  body.flip-in{animation:pflipIn .34s cubic-bezier(.4,0,.2,1);height:100vh;overflow:hidden}
+  @keyframes pflipOut{from{transform:rotateY(0)}to{transform:rotateY(-90deg)}}
+  @keyframes pflipIn{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
+
   .bar{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);
        padding:calc(env(safe-area-inset-top) + 10px) 14px 10px}
   .bar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px}
@@ -211,9 +219,25 @@
 </style>
 </head>
 <body>
+<script>
+// Plays on every arrival here — the only entry points are the header's
+// Command button (already mid-flip-out on index.html) or the Back link
+// below (same treatment in reverse). See the matching script in index.html.
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.body.classList.add('flip-in');
+  // Timer backstop in case animationend never fires — see index.html's
+  // matching script for why this can't rely on the event alone.
+  let cleaned = false;
+  const clean = () => { if (cleaned) return; cleaned = true; document.body.classList.remove('flip-in'); };
+  document.body.addEventListener('animationend', function once(e){
+    if (e.animationName === 'pflipIn') { document.body.removeEventListener('animationend', once); clean(); }
+  });
+  setTimeout(clean, 400);
+}
+</script>
 
 <div class="bar"><div class="bar-in">
-  <a href="index.html">‹ Back</a>
+  <a href="index.html" id="btn-back">‹ Back</a>
   <h1>Command</h1>
   <button type="button" id="btn-faq" class="infobtn" aria-label="About this tool">i</button>
 </div></div>
