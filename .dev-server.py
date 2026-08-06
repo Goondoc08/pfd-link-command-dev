@@ -16,6 +16,12 @@ import os
 import sys
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8128
+# Second arg is the bind address. Left unset, http.server picks the first
+# address getaddrinfo returns, which on Windows is the IPv6 wildcard --
+# so the server ends up on [::] only and a phone hitting the machine's
+# IPv4 LAN address just times out. Pass 0.0.0.0 to test on real devices:
+#     python .dev-server.py 8130 0.0.0.0
+BIND = sys.argv[2] if len(sys.argv) > 2 else None
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -28,4 +34,4 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == '__main__':
     Handler = functools.partial(NoCacheHandler, directory=ROOT)
-    http.server.test(HandlerClass=Handler, port=PORT)
+    http.server.test(HandlerClass=Handler, port=PORT, bind=BIND)

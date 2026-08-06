@@ -301,34 +301,70 @@ let lastChimedParDue = null;
 function tick(){
   if (!state) return;
 
-  $('c-elapsed').textContent = fmtHMS(Date.now() - state.startedAt);
+  const elapsed = Date.now() - state.startedAt;
+  const hdrElapsed = $('hdr-elapsed');
+  if (hdrElapsed) hdrElapsed.textContent = fmtHMS(elapsed);
 
-  const remain = state.parDue - Date.now();
-  const parEl = $('c-par');
+  updateParTimer();
+}
+
+function updateParTimer(){
+  if (!state) return;
+  const parBtn = $('btn-par-timer');
   const banner = $('par-banner');
 
+  if (!state.parDue) {
+    if (parBtn) parBtn.textContent = 'PAR: OFF';
+    if (parBtn) parBtn.style.setProperty('--par-color', 'var(--faint)');
+    banner.innerHTML = '';
+    return;
+  }
+
+  const remain = state.parDue - Date.now();
+
+  // Color-code based on time remaining: 4 stages
+  // 10+ min remaining: white (fresh)
+  // 5-10 min remaining: amber (starting to warn)
+  // 0-5 min remaining: orange (stronger warning)
+  // Overdue: red
+  let bgColor;
+  if (remain > 10 * 60000) {
+    bgColor = 'var(--txt)';
+  } else if (remain > 5 * 60000) {
+    bgColor = 'var(--amber)';
+  } else if (remain > 0) {
+    bgColor = '#d98b2c'; // orange
+  } else {
+    bgColor = 'var(--red)';
+  }
+
+  if (parBtn) {
+    parBtn.style.setProperty('--par-color', bgColor);
+    if (remain > 0) {
+      parBtn.textContent = 'PAR: ' + fmtMS(remain);
+    } else {
+      const overMs = -remain;
+      parBtn.textContent = 'PAR: ' + fmtMS(overMs);
+      // Chime is a bonus for when the screen happens to be on — never the
+      // safety mechanism. A locked/backgrounded PWA can't be counted on to
+      // play it, which is why the banner above is the thing that actually
+      // has to work. Fires once per PAR due time, not once per tick.
+      if (lastChimedParDue !== state.parDue && document.visibilityState === 'visible') {
+        playChime();
+        lastChimedParDue = state.parDue;
+      }
+    }
+  }
+
   if (remain > 0) {
-    parEl.textContent = 'PAR in ' + fmtMS(remain);
-    parEl.classList.remove('overdue');
     banner.innerHTML = '';
   } else {
     const overMs = -remain;
     const mins = Math.floor(overMs / 60000);
-    parEl.textContent = 'PAR overdue ' + fmtMS(overMs);
-    parEl.classList.add('overdue');
     banner.innerHTML =
       '<div class="flag urgent"><span>▲</span><span><b>PAR overdue.</b> Due ' +
       (mins < 1 ? 'less than a minute' : mins + ' minute' + (mins === 1 ? '' : 's')) +
       ' ago.</span></div>';
-
-    // Chime is a bonus for when the screen happens to be on — never the
-    // safety mechanism. A locked/backgrounded PWA can't be counted on to
-    // play it, which is why the banner above is the thing that actually
-    // has to work. Fires once per PAR due time, not once per tick.
-    if (lastChimedParDue !== state.parDue && document.visibilityState === 'visible') {
-      playChime();
-      lastChimedParDue = state.parDue;
-    }
   }
 }
 
@@ -738,6 +774,19 @@ function handleSheetOption(opt, value){
     saveState(state);
     closeSheet(); render(); return;
   }
+  if (opt === 'par-reset') {
+    appendEntry(state, { t: Date.now(), kind: 'par', reason: 'IC Decision', result: 'complete' });
+    state.parDue = Date.now() + state.parIntervalMin * 60000;
+    lastChimedParDue = null;
+    saveState(state);
+    closeSheet(); render(); return;
+  }
+  if (opt === 'par-stop') {
+    state.parDue = null;
+    lastChimedParDue = null;
+    saveState(state);
+    closeSheet(); render(); return;
+  }
   if (opt === 'assign-pick') {
     appendEntry(state, { t: Date.now(), kind: 'assign', unit: sheetCtx.unit, to: value });
     closeSheet(); render(); return;
@@ -983,12 +1032,8 @@ function render(){
   startScreen.hidden = true;
   activeScreen.hidden = false;
 
-  $('a-occ').textContent  = OCC_LABEL[state.occupancy] || state.occupancy;
-  $('a-addr').textContent = state.address || '(no address given)';
-  $('a-since').textContent = 'Started ' +
-    new Date(state.startedAt).toLocaleString(undefined, {
-      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+  const hdrOcc = $('hdr-occ');
+  if (hdrOcc) hdrOcc.textContent = OCC_LABEL[state.occupancy] || state.occupancy;
 
   renderModes();
   renderRoles();
@@ -1059,6 +1104,23 @@ $('btn-undo').addEventListener('click', () => {
   recomputeParDue();
   saveState(state);
   render();
+});
+
+/* ---------- PAR timer button (in header) ---------- */
+
+$('btn-par-timer').addEventListener('click', () => {
+  if (!state) return;
+  sheetCtx = { type: 'par-timer-reset' };
+  const html = `
+    <div class="sheet-group">Reset PAR Timer</div>
+    <button type="button" class="sheet-opt" data-opt="par-reset" data-value="complete">
+      Reset — Acknowledge Personnel Status
+    </button>
+    <button type="button" class="sheet-opt" data-opt="par-stop" data-value="">
+      Stop PAR Timer
+    </button>
+  `;
+  openSheet('PAR Options', html);
 });
 
 /* ---------- FAQ ---------- */
