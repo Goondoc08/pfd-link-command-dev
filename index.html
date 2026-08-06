@@ -76,9 +76,14 @@
   .brand h1{font-size:17px;font-weight:700;letter-spacing:.2px;margin:0}
   /* Command module entry — siren red, sits between the title and the
      info button, sized to the header row rather than the 48px tap-target
-     rule (matches .infobtn's exemption for the same reason). */
+     rule (matches .infobtn's exemption for the same reason).
+
+     margin-left:auto here pairs with the one on .infobtn: two auto
+     margins split the row's leftover space evenly, which centers this
+     button in the gap between the title and the info button. Changing
+     either one to a fixed value breaks the centering on the other. */
   .cmdbtn{
-    flex:0 0 auto;height:28px;padding:0 12px;margin-left:10px;
+    flex:0 0 auto;height:28px;padding:0 12px;margin-left:auto;
     background:var(--red);border:0;border-radius:6px;color:#fff;
     font-size:11.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
     text-decoration:none;cursor:pointer;
