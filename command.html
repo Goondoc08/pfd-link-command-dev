@@ -38,23 +38,23 @@
 
   .bar{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);
        padding:calc(env(safe-area-inset-top) + 10px) 14px 10px}
-  .bar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:12px}
-  .bar a{color:var(--dim);text-decoration:none;font-size:14px}
-  .bar h1{font-size:16px;font-weight:700;margin:0}
-  /* min-height:28px here is load-bearing, not decorative — the generic
-     button{min-height:48px} rule below would otherwise win on that one
-     property (class beats element on height, but neither rule touches
-     min-height until this one does), stretching this into a 28×48 pill
-     instead of the small circle it's meant to be. 28px matches the
-     equivalent info button already established in index.html — this is
-     a low-stakes, non-critical-path affordance, not something a
-     stressed IC needs at arm's length, so it's exempt from the 48px
-     tap-target rule that applies to PAR/assign/Undo. */
-  .infobtn{margin-left:auto;flex:0 0 auto;width:28px;height:28px;min-height:28px;
-           border-radius:50%;background:none;border:1.6px solid var(--amber);color:var(--amber);
-           font:italic 700 15px/1 Georgia,"Times New Roman",serif;cursor:pointer;
-           display:flex;align-items:center;justify-content:center;padding:0 0 1px 0}
-  .infobtn:active{background:rgba(224,165,44,.16)}
+  .bar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px}
+  .bar a{color:var(--dim);text-decoration:none;font-size:14px;flex:0 0 auto}
+  .bar h1{font-size:16px;font-weight:700;margin:0;flex:1}
+  /* Occupancy (incident type) in the header, bold and prominent. */
+  .bar .occ{font-size:14px;font-weight:800;color:var(--txt);flex:1;white-space:nowrap}
+  /* Elapsed time, small and muted. */
+  .bar .elapsed{font-size:12px;color:var(--faint);font-weight:700;font-variant-numeric:tabular-nums;
+                flex:0 0 auto;letter-spacing:.4px}
+  /* PAR timer button — critical and always visible. The color-coding happens
+     via JavaScript setting --par-color as CSS variable for white→red gradient. */
+  .par-timer{flex:0 0 auto;padding:8px 12px;font-size:13px;font-weight:800;
+             letter-spacing:.5px;text-transform:uppercase;border-radius:8px;
+             background:var(--par-color, var(--txt));color:var(--bg);border:0;
+             cursor:pointer;min-height:auto;font-family:inherit;
+             transition:background-color 100ms;min-width:80px;text-align:center}
+  .par-timer:active{opacity:.85}
+  .infobtn{display:none}
 
   h2{font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--faint);
      margin:22px 0 9px;font-weight:700}
@@ -93,12 +93,6 @@
   .btnrow{display:flex;gap:9px;margin-top:14px}
   .btnrow button{flex:1}
 
-  /* active incident header */
-  .inc-hdr{border-left:4px solid var(--green)}
-  .inc-hdr .occ{font-size:11px;letter-spacing:.8px;text-transform:uppercase;
-                color:var(--faint);font-weight:700}
-  .inc-hdr .addr{font-size:19px;font-weight:800;margin:3px 0 2px}
-  .inc-hdr .since{font-size:13px;color:var(--dim)}
 
   /* clocks — always derived from stored timestamps, never a counter;
      see the correctness rule in COMMAND-MODULE-PLAN.md */
@@ -259,7 +253,9 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
 
 <div class="bar"><div class="bar-in">
   <a href="index.html" id="btn-back">‹ Back</a>
-  <h1>Command</h1>
+  <div class="occ" id="hdr-occ">—</div>
+  <div class="elapsed" id="hdr-elapsed">00:00:00</div>
+  <button type="button" id="btn-par-timer" class="par-timer" aria-label="PAR timer">PAR: —</button>
   <button type="button" id="btn-faq" class="infobtn" aria-label="About this tool">i</button>
 </div></div>
 
@@ -298,34 +294,12 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
 
   <div id="active-screen" hidden>
     <div id="save-warning"></div>
-    <div class="card inc-hdr">
-      <div class="occ" id="a-occ">—</div>
-      <div class="addr" id="a-addr">—</div>
-      <div class="since" id="a-since">—</div>
-      <div class="clocks">
-        <div class="clock">
-          <div class="clabel">Elapsed</div>
-          <div class="cval" id="c-elapsed">00:00:00</div>
-        </div>
-      </div>
-    </div>
 
     <div class="rolesrow" id="modes-row"></div>
     <div class="rolesrow" id="roles-row"></div>
 
     <div id="par-banner"></div>
     <div id="par-suggestion"></div>
-
-    <h2>PAR</h2>
-    <div class="card">
-      <div class="parrow">
-        <div>
-          <div class="clabel">Every 15 minutes</div>
-          <div class="cval" id="c-par">—</div>
-        </div>
-        <button id="btn-par">PAR</button>
-      </div>
-    </div>
 
     <h2>Units</h2>
     <div class="card">
