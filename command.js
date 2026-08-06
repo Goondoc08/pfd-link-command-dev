@@ -4,6 +4,7 @@
    Phase 3: accountability board, roles, command transfer, resources.
    Phase 4: PAR reasons, command/operational mode, per-occupancy benchmarks.
    Phase 5: deployment-model suggestions on add-unit, by due order.
+   Phase 6: plain-text export, copy to clipboard, Web Share.
    Reads ROSTER / SPECIAL_UNITS / POSITIONS from roster.js,
    BENCHMARKS_* / COMMAND_MODES / OP_MODES / PAR_REASONS from benchmarks.js,
    and SUGGESTIONS / suggestionFor from suggestions.js.
@@ -828,6 +829,105 @@ function renderParSuggestion(){
     : '';
 }
 
+/* ---------- export ---------- */
+/* The timeline already exists; export is a formatter over it, per the
+   plan's architectural rule — nothing here is computed any other way
+   than by replaying the same log everything else replays.
+
+   PAR entries get an inline unit manifest (unit, personnel, position)
+   snapshotted from the board AS OF that exact log index — this is what
+   307.3.2(g)3 asks a PAR report to contain, and it "comes free from
+   the board" exactly the way the plan says it should: replay the log
+   up to that point and read off deriveBoard's units. */
+
+function modeSequence(kind, list){
+  const seq = [];
+  state.log.forEach(e => {
+    if (e.kind === kind && (seq.length === 0 || seq[seq.length - 1] !== e.mode)) {
+      seq.push(e.mode);
+    }
+  });
+  return seq.map(v => modeLabel(list, v));
+}
+
+function exportText(){
+  const lines = [];
+  const occLabel = OCC_LABEL[state.occupancy] || state.occupancy;
+  lines.push('INCIDENT — ' + occLabel + (state.address ? ' — ' + state.address : ''));
+
+  const endEntry = state.log.find(e => e.kind === 'incident-end');
+  const endedAt = endEntry ? endEntry.t : Date.now();
+  lines.push('Started ' + fmtTime(state.startedAt) + '  ·  Duration ' + fmtHMS(endedAt - state.startedAt));
+
+  const cmdSeq = modeSequence('command-mode', COMMAND_MODES);
+  const opSeq  = modeSequence('op-mode', OP_MODES);
+  const modeParts = [];
+  if (cmdSeq.length) modeParts.push('Command: ' + cmdSeq.join(' → '));
+  if (opSeq.length)  modeParts.push('Mode: ' + opSeq.join(' → '));
+  if (modeParts.length) lines.push(modeParts.join('  ·  '));
+
+  lines.push('');
+
+  state.log.forEach((e, i) => {
+    lines.push(fmtTime(e.t) + '  ' + describeEntry(e));
+    if (e.kind === 'par') {
+      const snap = deriveBoard(state.log.slice(0, i + 1));
+      const names = Object.keys(snap.units);
+      if (names.length === 0) {
+        lines.push('    (no units on board)');
+      } else {
+        names.forEach(n => {
+          const u = snap.units[n];
+          lines.push('    ' + n + '  (' + u.personnel + ')  ' + u.position);
+        });
+      }
+    }
+  });
+
+  return lines.join('\n');
+}
+
+function renderExport(){
+  $('export-text').value = exportText();
+}
+
+function flashExportStatus(msg){
+  const el = $('export-status');
+  el.textContent = msg;
+  clearTimeout(flashExportStatus._t);
+  flashExportStatus._t = setTimeout(() => { el.textContent = ''; }, 2500);
+}
+
+$('btn-copy').addEventListener('click', async () => {
+  const text = $('export-text').value;
+  try {
+    await navigator.clipboard.writeText(text);
+    flashExportStatus('Copied to clipboard.');
+  } catch (e) {
+    // Clipboard API can be unavailable (older WebView, non-secure
+    // context); fall back to the old select-and-execCommand trick
+    // rather than leaving the tap looking like it did nothing.
+    const ta = $('export-text');
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+      flashExportStatus('Copied to clipboard.');
+    } catch (e2) {
+      flashExportStatus('Could not copy — select the text above manually.');
+    }
+  }
+});
+
+if (navigator.share) {
+  $('btn-share').hidden = false;
+  $('btn-share').addEventListener('click', () => {
+    navigator.share({ text: $('export-text').value }).catch(() => {
+      // user cancelled the share sheet — not an error worth surfacing
+    });
+  });
+}
+
 /* ---------- render ---------- */
 
 const startScreen  = $('start-screen');
@@ -843,6 +943,7 @@ function render(){
     $('resources').innerHTML = '';
     $('checklist').innerHTML = '';
     $('par-suggestion').innerHTML = '';
+    $('export-text').value = '';
     closeSheet();
     return;
   }
@@ -862,6 +963,7 @@ function render(){
   renderResources();
   renderChecklist();
   renderParSuggestion();
+  renderExport();
 
   const tl = $('timeline');
   if (state.log.length === 0) {

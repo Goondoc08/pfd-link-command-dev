@@ -35,6 +35,14 @@
         color:var(--faint);font-weight:700;margin:0 0 7px}
   .field + .field{margin-top:16px}
 
+  textarea{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:12px 13px;font-size:12.5px;line-height:1.55;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    min-height:180px;resize:vertical;-webkit-appearance:none;appearance:none;
+  }
+  .export-status{font-size:13px;color:var(--green);margin-top:8px;min-height:16px}
+
   select, input[type=text]{
     width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
     border-radius:10px;padding:12px 13px;font-size:15.5px;font-family:inherit;
@@ -278,6 +286,16 @@
     <h2>Timeline</h2>
     <div class="card">
       <ul class="tl" id="timeline"></ul>
+    </div>
+
+    <h2>Export</h2>
+    <div class="card">
+      <textarea id="export-text" readonly rows="8"></textarea>
+      <div class="btnrow">
+        <button id="btn-copy">Copy</button>
+        <button id="btn-share" hidden>Share</button>
+      </div>
+      <div id="export-status" class="export-status"></div>
     </div>
 
     <div class="btnrow">
