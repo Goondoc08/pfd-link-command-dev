@@ -1,0 +1,45 @@
+# Preview-repo deploy ONLY — this file must never reach pearland-fire-link.
+#
+# It lives on the `preview-deploy` branch, which is `command-module` plus this
+# one commit, and is pushed to pfd-link-command-dev's main. The production repo
+# still uses GitHub's legacy branch-based Pages build; dropping an Actions Pages
+# workflow there would fire on every push and fail, because production's Pages
+# source isn't set to "GitHub Actions". Keep it off `command-module` so the
+# Phase 8 merge to main stays clean.
+#
+# Why this exists at all: the preview repo's legacy Pages deploy started hanging
+# and hitting a hard 10-minute timeout ("Timeout reached, aborting!") while the
+# build step itself kept succeeding in ~25s. Actions-based deploy is the path
+# GitHub actively maintains and it skips Jekyll entirely, which this static site
+# never needed.
+name: Deploy preview site to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than stacking up behind rapid test pushes.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4
