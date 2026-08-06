@@ -48,12 +48,24 @@
   .wrap{max-width:760px;margin:0 auto;padding:0 14px 96px}
 
   /* ---------- screen flip (Command module entry/return) ---------- */
-  html{perspective:1100px}
-  body{backface-visibility:hidden;transform-origin:center}
-  body.flip-out{animation:pflipOut .34s cubic-bezier(.4,0,.2,1) forwards;height:100vh;overflow:hidden}
-  body.flip-in{animation:pflipIn .34s cubic-bezier(.4,0,.2,1);height:100vh;overflow:hidden}
-  @keyframes pflipOut{from{transform:rotateY(0)}to{transform:rotateY(-90deg)}}
-  @keyframes pflipIn{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
+  /* The depth comes from perspective() INSIDE the transform, never from a
+     `perspective` (or `transform`) property sitting on <html> or <body>.
+     Either of those on an ancestor makes position:fixed resolve against
+     that ancestor instead of the viewport, which silently relocated every
+     fixed overlay — the FAQ sheet, the share button, the toast, and the
+     Command module's bottom sheet — to the bottom of the *document*. The
+     sheet's dim backdrop still covered the screen, so it read as "the
+     popup won't open" rather than as a positioning bug. Keeping the
+     properties scoped to the .flip-* classes means they only exist for
+     the 340ms of the animation, when no overlay is open. */
+  body.flip-out{animation:pflipOut .34s cubic-bezier(.4,0,.2,1) forwards;
+                height:100vh;overflow:hidden;backface-visibility:hidden}
+  body.flip-in{animation:pflipIn .34s cubic-bezier(.4,0,.2,1);
+               height:100vh;overflow:hidden;backface-visibility:hidden}
+  @keyframes pflipOut{from{transform:perspective(1100px) rotateY(0)}
+                        to{transform:perspective(1100px) rotateY(-90deg)}}
+  @keyframes pflipIn{from{transform:perspective(1100px) rotateY(90deg)}
+                       to{transform:perspective(1100px) rotateY(0)}}
 
   /* ---------- header ---------- */
   header{
