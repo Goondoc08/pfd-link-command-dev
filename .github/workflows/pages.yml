@@ -24,10 +24,12 @@ permissions:
   pages: write
   id-token: write
 
-# Let a running deploy finish rather than stacking up behind rapid test pushes.
+# One deploy at a time, but never kill one that's already running — a
+# cancelled in-flight deploy reports "Deployment cancelled." and looks
+# exactly like a backend failure. Matches GitHub's own Pages template.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
