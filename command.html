@@ -181,9 +181,21 @@
      stylesheet beats UA stylesheet at equal specificity), leaving the backdrop
      visibly covering the screen after "closing" it. */
   .sheet-backdrop:not([hidden]){position:fixed;inset:0;background:rgba(0,0,0,.55);
-                  z-index:30;display:flex;align-items:flex-end}
-  .sheet{width:100%;max-height:82vh;background:var(--panel);border-radius:16px 16px 0 0;
+                  z-index:30;display:flex;align-items:flex-end;justify-content:center}
+  /* Phone/tablet portrait: a sheet off the bottom edge, within one-handed
+     reach — the posture this whole module is designed around. 88vh so a
+     long list (the 21-item assign sheet) shows as much as possible
+     without the header scrolling away. */
+  .sheet{width:100%;max-height:88vh;background:var(--panel);border-radius:16px 16px 0 0;
          border:1px solid var(--line);border-bottom:0;display:flex;flex-direction:column}
+  /* Wider screens: centre it as a card instead of a full-width bar welded
+     to the bottom edge, which puts the options miles from where the eye
+     already is. */
+  @media (min-width:700px){
+    .sheet-backdrop:not([hidden]){align-items:center}
+    .sheet{max-width:560px;max-height:82vh;border-radius:16px;
+           border-bottom:1px solid var(--line)}
+  }
   .sheet-hd{display:flex;align-items:center;justify-content:space-between;
             padding:14px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px}
   .sheet-hd button{background:none;border:0;color:var(--dim);font-size:20px;
