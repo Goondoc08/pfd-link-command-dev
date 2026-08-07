@@ -66,11 +66,9 @@ const OP_MODES = [
 // 307.3.2(g)1's PAR triggers, reworded as short action phrases rather
 // than the SOG's own sentences — see the copyright note above.
 const PAR_REASONS = [
-  'Missing / trapped / injured firefighter',
-  'Offensive → defensive change',
-  'Catastrophic event (flashover, backdraft, collapse, Mayday)',
-  'Emergency evacuation',
-  'Fire under control',
-  '15-minute benchmark',
-  'IC discretion'
+  '15 Minutes Elapsed',
+  'Mayday',
+  'Evacuation',
+  'Offensive → Defensive',
+  'IC Discretion'
 ];

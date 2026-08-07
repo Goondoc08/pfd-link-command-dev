@@ -1103,6 +1103,18 @@ $('btn-undo').addEventListener('click', () => {
 
 $('btn-par-timer').addEventListener('click', () => {
   if (!state) return;
+
+  // PAR is off: this tap's job is just to get it running again, not to
+  // ask for a reason first — the same one-tap-to-restart the button's
+  // label ("PAR: OFF") implies.
+  if (!state.parDue) {
+    state.parDue = Date.now() + state.parIntervalMin * 60000;
+    lastChimedParDue = null;
+    saveState(state);
+    render();
+    return;
+  }
+
   sheetCtx = { type: 'par' };
   // 307.3.2(g)1's trigger list — picking a reason is the same tap that
   // completes the PAR and resets the clock (handleSheetOption's
