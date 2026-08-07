@@ -50,14 +50,11 @@ function benchmarksFor(occupancy){
   return BENCHMARKS_CORE.concat(BENCHMARKS_BY_OCCUPANCY[occupancy] || []);
 }
 
-// 401.3's command-mode declaration.
-const COMMAND_MODES = [
-  { value: 'investigative', label: 'Investigative' },
-  { value: 'fast-attack',   label: 'Fast Attack' },
-  { value: 'command',       label: 'Command' }
-];
-
-// 401.3's operational-mode declaration.
+// 401.3's operational-mode declaration. Command mode (Investigative /
+// Fast Attack / Command) isn't tracked here — by the time an incident
+// needs this module, a dedicated command is already established, so
+// declaring it would be logging a fact that's already true rather than
+// a live decision.
 const OP_MODES = [
   { value: 'offensive', label: 'Offensive' },
   { value: 'defensive', label: 'Defensive' }

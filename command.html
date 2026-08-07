@@ -110,21 +110,32 @@
 
   .flag.urgent{background:#2c1414;border-color:#5c2020;color:#f0a8a0}
   .flag.urgent b{color:#fff}
-  #par-banner:empty{margin:0}
+  /* Always rendered (see parOverdueFlagHTML) so #par-banner's box
+     reserves its space up front — visibility, not display, is what
+     toggles, so nothing below it shifts when PAR goes overdue. */
+  .par-overdue-flag--hidden{visibility:hidden}
+  /* Bumped for visibility on the fireground; the flag box itself
+     (padding/border-radius) is untouched, only this label's text. */
+  .par-overdue-label{font-size:16px}
 
   #par-suggestion:empty{margin:0}
 
-  /* checklist */
-  ul.ck{list-style:none;margin:0;padding:0}
-  ul.ck li{display:flex;gap:11px;align-items:flex-start;padding:11px 2px;
-           border-bottom:1px solid var(--line);cursor:pointer;min-height:48px}
-  ul.ck li:last-child{border-bottom:0}
+  /* checklist — 2-column grid to cut the section's height roughly in
+     half. Grid flow no longer matches a single top-to-bottom read, so
+     each item carries its own order number (.idx) instead of relying
+     on position alone. No per-item border — with two columns a
+     bottom rule doesn't line up across them, and it isn't needed once
+     the number states the order directly. */
+  ul.ck{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
+  ul.ck li{display:flex;gap:7px;align-items:flex-start;padding:9px 2px;cursor:pointer;min-height:48px}
+  ul.ck .idx{font-size:11px;font-weight:700;color:var(--faint);flex:0 0 auto;
+             width:13px;text-align:right;margin-top:4px}
   ul.ck .bx{width:19px;height:19px;border:2px solid var(--faint);border-radius:5px;
             flex:0 0 auto;margin-top:2px}
   ul.ck li.done .bx{background:var(--green);border-color:var(--green);position:relative}
   ul.ck li.done .bx::after{content:"";position:absolute;left:4px;top:0px;width:5px;height:9px;
                            border:solid #08130c;border-width:0 2px 2px 0;transform:rotate(45deg)}
-  ul.ck span.lb{font-size:14.5px;padding-top:1px}
+  ul.ck span.lb{font-size:13.5px;padding-top:1px;line-height:1.35}
   ul.ck li.done span.lb{color:var(--dim);text-decoration:line-through}
 
   /* pinned roles + command — 307.3.2(a)1 makes the IC directly
@@ -160,13 +171,14 @@
   .stepper .sv{font-size:26px;font-weight:800;min-width:38px;text-align:center;
                font-variant-numeric:tabular-nums}
 
-  /* resources */
-  .resrow{display:flex;align-items:center;justify-content:space-between;gap:10px;
-          padding:9px 0;border-bottom:1px solid var(--line)}
-  .resrow:last-child{border-bottom:0}
-  .resrow .rn{font-size:14.5px;font-weight:700}
-  .restoggles{display:flex;gap:7px}
-  .restoggles button{padding:9px 12px;font-size:12.5px;min-height:40px}
+  /* resources — two equal columns, one row, each its own box (no
+     shared card and no heading — cut in Phase 8 drill feedback) */
+  #resources{display:flex;gap:10px;margin-top:22px}
+  .rescol{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);
+          border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center}
+  .rescol .rn{font-size:14.5px;font-weight:700;margin-bottom:8px;text-align:center}
+  .restoggles{display:flex;gap:7px;width:100%}
+  .restoggles button{flex:1;padding:9px 8px;font-size:12.5px;min-height:40px}
   .restoggles button.on{background:var(--green);border-color:var(--green);color:#08130c}
 
   /* bottom sheet */
@@ -295,11 +307,15 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
   <div id="active-screen" hidden>
     <div id="save-warning"></div>
 
-    <div class="rolesrow" id="modes-row"></div>
-    <div class="rolesrow" id="roles-row"></div>
+    <div class="rolesrow" id="topchips-row"></div>
 
     <div id="par-banner"></div>
     <div id="par-suggestion"></div>
+
+    <h2>Next Considerations</h2>
+    <div class="card">
+      <ul class="ck" id="checklist"></ul>
+    </div>
 
     <h2>Units</h2>
     <div class="card">
@@ -309,15 +325,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
       </div>
     </div>
 
-    <h2>Resources</h2>
-    <div class="card">
-      <div id="resources"></div>
-    </div>
-
-    <h2>Next Considerations</h2>
-    <div class="card">
-      <ul class="ck" id="checklist"></ul>
-    </div>
+    <div id="resources"></div>
 
     <h2>Note</h2>
     <div class="card">

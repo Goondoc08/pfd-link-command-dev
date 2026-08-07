@@ -7,7 +7,7 @@
    Phase 6: plain-text export, copy to clipboard, Web Share.
    Phase 7: undo, save/load hardening, FAQ.
    Reads ROSTER / SPECIAL_UNITS / POSITIONS from roster.js,
-   BENCHMARKS_* / COMMAND_MODES / OP_MODES / PAR_REASONS from benchmarks.js,
+   BENCHMARKS_* / OP_MODES / PAR_REASONS from benchmarks.js,
    and SUGGESTIONS / suggestionFor from suggestions.js.
 
    The event log is the database. Every action appends an immutable entry;
@@ -100,11 +100,10 @@ function newIncident(occupancy, address){
     startedAt: now,
     occupancy,
     address: address || '',
-    // Command mode and operational mode are NOT stored here — like
-    // everything else on the board, they're derived by replaying the
-    // log's 'command-mode' / 'op-mode' entries (see deriveBoard). A
-    // mutable field alongside the log is exactly the thing the plan's
-    // architecture rule warns against.
+    // Op mode is NOT stored here — like everything else on the board,
+    // it's derived by replaying the log's 'op-mode' entries (see
+    // deriveBoard). A mutable field alongside the log is exactly the
+    // thing the plan's architecture rule warns against.
     //
     // The 15-minute PAR requirement (307.3.2(g)1(f)) runs continuously
     // from the moment command is established, so the clock starts here
@@ -161,10 +160,8 @@ function describeEntry(e){
     case 'resource':
       return (SPECIAL_UNITS[e.which] || e.which) + ' ' +
              (e.state === 'onScene' ? 'on scene' : 'requested');
-    case 'command-transfer':
-      return 'Command transferred to ' + e.to;
-    case 'command-mode':
-      return 'Command mode: ' + modeLabel(COMMAND_MODES, e.mode);
+    case 'command-assumed':
+      return 'Command transferred';
     case 'op-mode':
       return 'Operational mode: ' + modeLabel(OP_MODES, e.mode);
     case 'benchmark':
@@ -186,10 +183,9 @@ function deriveBoard(log){
   const units = {};        // name -> { personnel, position, splitOf? }
   const splitsOf = {};     // base unit name -> [halfName, halfName] while split
   const roles = { safety: null, accountability: null };
-  const resources = { fmo: {}, centerpoint: {} };
+  const resources = { fmo: {}, utilities: {} };
   const benchmarksDone = {}; // key -> timestamp completed
-  let commandTransferredTo = null;
-  let commandMode = null;
+  let cmdAssumedAt = null;
   let opMode = null;
   let lastPar = null;
   let lastDefensiveAt = null;
@@ -227,11 +223,8 @@ function deriveBoard(log){
       case 'resource':
         if (resources[e.which]) resources[e.which][e.state] = e.t;
         break;
-      case 'command-transfer':
-        commandTransferredTo = e.to;
-        break;
-      case 'command-mode':
-        commandMode = e.mode;
+      case 'command-assumed':
+        cmdAssumedAt = e.t;
         break;
       case 'op-mode':
         opMode = e.mode;
@@ -262,7 +255,7 @@ function deriveBoard(log){
 
   return {
     units, splitsOf, roles, resources, benchmarksDone,
-    commandTransferredTo, commandMode, opMode, parSuggestion
+    cmdAssumedAt, opMode, parSuggestion
   };
 }
 
@@ -273,6 +266,10 @@ function defaultCrewFor(name){
 
 function fmtTime(t){
   return new Date(t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtDate(t){
+  return new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function fmtHMS(ms){
@@ -308,6 +305,19 @@ function tick(){
   updateParTimer();
 }
 
+/* Same markup whether or not PAR is actually overdue — only
+   visibility (not display) changes, so the banner's box always
+   occupies its slot and nothing below it shifts when it turns on. */
+function parOverdueFlagHTML(mins){
+  const hidden = mins === null;
+  const text = hidden
+    ? 'Due 0 minutes ago.'
+    : 'Due ' + (mins < 1 ? 'less than a minute' : mins + ' minute' + (mins === 1 ? '' : 's')) + ' ago.';
+  return '<div class="flag urgent par-overdue-flag' + (hidden ? ' par-overdue-flag--hidden' : '') + '"' +
+    (hidden ? ' aria-hidden="true"' : '') +
+    '><span>▲</span><span><b class="par-overdue-label">PAR OVERDUE.</b> ' + text + '</span><span>▲</span></div>';
+}
+
 function updateParTimer(){
   if (!state) return;
   const parBtn = $('btn-par-timer');
@@ -316,7 +326,7 @@ function updateParTimer(){
   if (!state.parDue) {
     if (parBtn) parBtn.textContent = 'PAR: OFF';
     if (parBtn) parBtn.style.setProperty('--par-color', 'var(--faint)');
-    banner.innerHTML = '';
+    banner.innerHTML = parOverdueFlagHTML(null);
     return;
   }
 
@@ -357,14 +367,11 @@ function updateParTimer(){
   }
 
   if (remain > 0) {
-    banner.innerHTML = '';
+    banner.innerHTML = parOverdueFlagHTML(null);
   } else {
     const overMs = -remain;
     const mins = Math.floor(overMs / 60000);
-    banner.innerHTML =
-      '<div class="flag urgent"><span>▲</span><span><b>PAR overdue.</b> Due ' +
-      (mins < 1 ? 'less than a minute' : mins + ' minute' + (mins === 1 ? '' : 's')) +
-      ' ago.</span></div>';
+    banner.innerHTML = parOverdueFlagHTML(mins);
   }
 }
 
@@ -469,58 +476,39 @@ function closeSheet(){
   sheetCtx = null;
 }
 
-/* ---------- roles + command ---------- */
-/* Pinned above the board rather than assigned like a division, because
-   307.3.2(a)1 makes the IC directly responsible for these. */
+/* ---------- top chip row: command transfer, op mode, roles ---------- */
+/* One row. Cmd Transferred is a bare timestamp marker, not a "who's in
+   command" display — whoever is running this module IS command, so
+   there's nothing to name. Ops Mode is 401.3's offensive/defensive
+   declaration; a change to defensive is what drives the PAR suggestion
+   below. Safety/Accountability are pinned here rather than assigned
+   like a division because 307.3.2(a)1 makes the IC directly
+   responsible for them. */
 
-function renderRoles(){
-  const { roles, commandTransferredTo } = deriveBoard(state.log);
-  $('roles-row').innerHTML = `
+function renderTopChips(){
+  const { roles, cmdAssumedAt, opMode } = deriveBoard(state.log);
+  $('topchips-row').innerHTML = `
+    <button type="button" class="rolechip${cmdAssumedAt ? ' set' : ''}" data-role-chip="cmd-assumed">
+      <span class="rl">Cmd Transferred</span><span class="rv">${cmdAssumedAt ? fmtTime(cmdAssumedAt) : 'Tap to mark'}</span>
+    </button>
+    <button type="button" class="rolechip${opMode ? ' set' : ''}" data-mode-chip="op-mode">
+      <span class="rl">Ops Mode</span><span class="rv">${escapeHTML(opMode ? modeLabel(OP_MODES, opMode) : 'Not set')}</span>
+    </button>
     <button type="button" class="rolechip${roles.safety ? ' set' : ''}" data-role-chip="safety">
       <span class="rl">Safety</span><span class="rv">${escapeHTML(roles.safety || 'Not set')}</span>
     </button>
     <button type="button" class="rolechip${roles.accountability ? ' set' : ''}" data-role-chip="accountability">
       <span class="rl">Accountability</span><span class="rv">${escapeHTML(roles.accountability || 'Not set')}</span>
     </button>
-    <button type="button" class="rolechip${commandTransferredTo ? ' set' : ''}" data-role-chip="command">
-      <span class="rl">IC</span><span class="rv">${escapeHTML(commandTransferredTo || 'This unit')}</span>
-    </button>
   `;
 }
 
-/* ---------- command mode / operational mode (401.3) ---------- */
-/* Kept visually and structurally separate from the IC chip above —
-   "who has command" and "what posture command has declared" are two
-   different facts, and 401 already calls one of them "command mode",
-   so reusing that word for the IC chip would be confusing under
-   exactly the conditions this module has to work in. */
-
-function renderModes(){
-  const { commandMode, opMode } = deriveBoard(state.log);
-  $('modes-row').innerHTML = `
-    <button type="button" class="rolechip${commandMode ? ' set' : ''}" data-mode-chip="command-mode">
-      <span class="rl">Cmd Mode</span><span class="rv">${escapeHTML(commandMode ? modeLabel(COMMAND_MODES, commandMode) : 'Not set')}</span>
-    </button>
-    <button type="button" class="rolechip${opMode ? ' set' : ''}" data-mode-chip="op-mode">
-      <span class="rl">Op Mode</span><span class="rv">${escapeHTML(opMode ? modeLabel(OP_MODES, opMode) : 'Not set')}</span>
-    </button>
-  `;
-}
-
-function openModeSheet(kind){
-  const list = kind === 'command-mode' ? COMMAND_MODES : OP_MODES;
-  const title = kind === 'command-mode' ? 'Command Mode' : 'Operational Mode';
-  sheetCtx = { type: 'mode', kind };
-  openSheet(title, list.map(m =>
+function openModeSheet(){
+  sheetCtx = { type: 'mode', kind: 'op-mode' };
+  openSheet('Operational Mode', OP_MODES.map(m =>
     `<button type="button" class="sheet-opt" data-opt="mode-pick" data-value="${escapeHTML(m.value)}">${escapeHTML(m.label)}</button>`
   ).join(''));
 }
-
-$('modes-row').addEventListener('click', e => {
-  const chip = e.target.closest('[data-mode-chip]');
-  if (!chip || !state) return;
-  openModeSheet(chip.dataset.modeChip);
-});
 
 function openRoleSheet(role){
   const { units } = deriveBoard(state.log);
@@ -548,17 +536,18 @@ function setRoleFree(){
   render();
 }
 
-$('roles-row').addEventListener('click', e => {
-  const chip = e.target.closest('[data-role-chip]');
-  if (!chip || !state) return;
-  const kind = chip.dataset.roleChip;
-  if (kind === 'command') {
-    // One tap. Battalion 1 is the only transfer target this module
-    // knows about; once transferred there's nothing to toggle back to
-    // safely, so a set chip is inert rather than reversible here.
-    const { commandTransferredTo } = deriveBoard(state.log);
-    if (commandTransferredTo) return;
-    appendEntry(state, { t: Date.now(), kind: 'command-transfer', to: SPECIAL_UNITS.battalion });
+$('topchips-row').addEventListener('click', e => {
+  const modeChip = e.target.closest('[data-mode-chip]');
+  if (modeChip && state) { openModeSheet(); return; }
+
+  const roleChip = e.target.closest('[data-role-chip]');
+  if (!roleChip || !state) return;
+  const kind = roleChip.dataset.roleChip;
+  if (kind === 'cmd-assumed') {
+    // Re-tappable, on purpose — command can transfer more than once
+    // in an incident (initial officer, then an arriving BC), and this
+    // button only marks the moment, not who holds it.
+    appendEntry(state, { t: Date.now(), kind: 'command-assumed' });
     render();
     return;
   }
@@ -834,17 +823,20 @@ $('sheet-backdrop').addEventListener('click', e => {
 });
 
 /* ---------- resources ---------- */
-/* FMO and CenterPoint don't behave like line companies — no board
-   position, just two timestamps each. See the plan. */
+/* FMO and Utilities don't behave like line companies — no board
+   position, just two timestamps each. See the plan. Shown as two equal
+   columns in one row rather than stacked full-width rows — there are
+   only ever these two, so there's no reason to spend the vertical
+   space stacking gains nothing. */
 
 function renderResources(){
   const { resources } = deriveBoard(state.log);
-  const row = (key, label) => {
+  const col = (key, label) => {
     const r = resources[key] || {};
     const reqOn = !!r.requested;
     const sceneOn = !!r.onScene;
     return `
-      <div class="resrow">
+      <div class="rescol">
         <div class="rn">${escapeHTML(label)}</div>
         <div class="restoggles">
           <button type="button" class="${reqOn ? 'on' : ''}" data-res="${key}" data-state="requested" ${reqOn ? 'disabled' : ''}>Requested</button>
@@ -852,7 +844,7 @@ function renderResources(){
         </div>
       </div>`;
   };
-  $('resources').innerHTML = row('fmo', SPECIAL_UNITS.fmo) + row('centerpoint', SPECIAL_UNITS.centerpoint);
+  $('resources').innerHTML = col('fmo', SPECIAL_UNITS.fmo) + col('utilities', SPECIAL_UNITS.utilities);
 }
 
 $('resources').addEventListener('click', e => {
@@ -870,10 +862,10 @@ $('resources').addEventListener('click', e => {
 function renderChecklist(){
   const { benchmarksDone } = deriveBoard(state.log);
   const items = benchmarksFor(state.occupancy);
-  $('checklist').innerHTML = items.map(b => {
+  $('checklist').innerHTML = items.map((b, i) => {
     const done = !!benchmarksDone[b.key];
     return `<li class="${done ? 'done' : ''}" data-benchmark="${escapeHTML(b.key)}" data-label="${escapeHTML(b.label)}">
-      <i class="bx"></i><span class="lb">${escapeHTML(b.label)}</span>
+      <span class="idx">${i + 1}</span><i class="bx"></i><span class="lb">${escapeHTML(b.label)}</span>
     </li>`;
   }).join('');
 }
@@ -925,14 +917,11 @@ function exportText(){
 
   const endEntry = state.log.find(e => e.kind === 'incident-end');
   const endedAt = endEntry ? endEntry.t : Date.now();
-  lines.push('Started ' + fmtTime(state.startedAt) + '  ·  Duration ' + fmtHMS(endedAt - state.startedAt));
+  lines.push('Started ' + fmtDate(state.startedAt) + ' ' + fmtTime(state.startedAt) +
+             '  ·  Duration ' + fmtHMS(endedAt - state.startedAt));
 
-  const cmdSeq = modeSequence('command-mode', COMMAND_MODES);
-  const opSeq  = modeSequence('op-mode', OP_MODES);
-  const modeParts = [];
-  if (cmdSeq.length) modeParts.push('Command: ' + cmdSeq.join(' → '));
-  if (opSeq.length)  modeParts.push('Mode: ' + opSeq.join(' → '));
-  if (modeParts.length) lines.push(modeParts.join('  ·  '));
+  const opSeq = modeSequence('op-mode', OP_MODES);
+  if (opSeq.length) lines.push('Mode: ' + opSeq.join(' → '));
 
   lines.push('');
 
@@ -1005,8 +994,7 @@ function render(){
   if (!state) {
     startScreen.hidden = false;
     activeScreen.hidden = true;
-    $('modes-row').innerHTML = '';
-    $('roles-row').innerHTML = '';
+    $('topchips-row').innerHTML = '';
     $('board').innerHTML = '';
     $('resources').innerHTML = '';
     $('checklist').innerHTML = '';
@@ -1028,8 +1016,7 @@ function render(){
   const hdrOcc = $('hdr-occ');
   if (hdrOcc) hdrOcc.textContent = OCC_LABEL[state.occupancy] || state.occupancy;
 
-  renderModes();
-  renderRoles();
+  renderTopChips();
   renderBoard();
   renderResources();
   renderChecklist();
