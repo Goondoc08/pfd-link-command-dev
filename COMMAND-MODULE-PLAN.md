@@ -135,9 +135,9 @@ Notes that the code has to respect:
 
 | Unit | Behavior |
 |---|---|
-| Battalion 1 | Not a board tile. Arriving logs **"Command transferred to Battalion 1"** — the thing that actually happens. |
+| Battalion 1 | Not a board tile. No longer tracked as a transfer target — see "Assumed Cmd" below. |
 | FMO | Two toggles, two timestamps: *requested* and *on scene*. No board position. |
-| CenterPoint | Same two toggles. Utilities response is a timeline fact, not a division. |
+| Utilities (was CenterPoint) | Same two toggles. Utility response is a timeline fact, not a division. Renamed off the specific company name in Phase 8 drill feedback. |
 | Squad 1 | Ordinary board unit. Assigned like an engine. |
 
 ---
@@ -233,8 +233,8 @@ Written synchronously after every append. It's small; don't be clever about it.
 | kind | payload | shows on board |
 |---|---|---|
 | `incident-start` | occupancy, address | header |
-| `command-mode` | mode | header |
-| `op-mode` | mode | header + triggers PAR prompt on change to defensive |
+| `op-mode` | mode | top row + triggers PAR prompt on change to defensive |
+| `command-assumed` | — | top row (Assumed Cmd chip, timestamp only) |
 | `unit-arrive` | unit, personnel | adds to Staging |
 | `unit-split` / `unit-merge` | unit | splits tile into High/Low |
 | `assign` | unit, to | moves unit to a position |
@@ -242,8 +242,7 @@ Written synchronously after every append. It's small; don't be clever about it.
 | `unit-clear` | unit | removes from board |
 | `benchmark` | label | log only |
 | `par` | reason, result | resets PAR clock |
-| `resource` | which (FMO/CenterPoint), state | log only |
-| `command-transfer` | to | header |
+| `resource` | which (FMO/Utilities), state | log only |
 | `note` | text | log only |
 | `incident-end` | — | closes |
 
@@ -399,6 +398,28 @@ background alerts are not guaranteed.
 ### Phase 8 — Drill before merge
 Run it on a training evolution or a tabletop with someone else calling the incident. Fix
 what the drill exposes. **Only then** merge to `main` and bump `sw.js` `CACHE`.
+
+**Drill feedback so far:**
+- PAR reason list trimmed to 5 phrases (15 Minutes Elapsed, Mayday, Evacuation,
+  Offensive → Defensive, IC Discretion); header clock labeled "Elapsed Time:"; tapping
+  PAR while off restarts it directly instead of opening the reason sheet.
+- **Command Mode cut entirely.** Investigative/Fast Attack/Command was logging a fact
+  that's already true by the time an incident needs this tool — a dedicated command is
+  always established before the module gets opened, so there was no live decision to
+  capture.
+- **IC chip replaced with "Assumed Cmd."** The chip used to show *who* is IC and, in one
+  tap, log a transfer to Battalion 1. Neither survived: whoever is running the module
+  is command, so there's nothing to name, and a transfer target hardcoded to Battalion 1
+  didn't fit every case. Assumed Cmd is a bare, re-tappable timestamp marker instead —
+  logs "Command assumed" whenever it's tapped, no target, no persistent state.
+- Top row trimmed from 5 chips (Cmd Mode, Op Mode, Safety, Accountability, IC) to 4
+  (Assumed Cmd, Op Mode, Safety, Accountability), consolidated into one row.
+- Next Considerations moved up, directly under the top row — visible before any tap,
+  not buried below the board.
+- Resources moved down, directly above Note; FMO and Utilities laid out as two equal
+  columns in one row instead of two stacked full-width rows.
+- CenterPoint renamed to Utilities — a generic label instead of one specific company's
+  name.
 
 ---
 

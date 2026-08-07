@@ -44,9 +44,9 @@ const ROSTER = [
 /* Units that don't behave like line companies — never appear in the Add
    Unit sheet, handled by their own controls instead. See the plan. */
 const SPECIAL_UNITS = {
-  battalion:   'Battalion 1',
-  fmo:         'FMO',
-  centerpoint: 'CenterPoint'
+  battalion: 'Battalion 1',
+  fmo:       'FMO',
+  utilities: 'Utilities'
 };
 
 /* Positions offered on the assign sheet, grouped for the picker.

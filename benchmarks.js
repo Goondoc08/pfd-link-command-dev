@@ -50,14 +50,11 @@ function benchmarksFor(occupancy){
   return BENCHMARKS_CORE.concat(BENCHMARKS_BY_OCCUPANCY[occupancy] || []);
 }
 
-// 401.3's command-mode declaration.
-const COMMAND_MODES = [
-  { value: 'investigative', label: 'Investigative' },
-  { value: 'fast-attack',   label: 'Fast Attack' },
-  { value: 'command',       label: 'Command' }
-];
-
-// 401.3's operational-mode declaration.
+// 401.3's operational-mode declaration. Command mode (Investigative /
+// Fast Attack / Command) isn't tracked here — by the time an incident
+// needs this module, a dedicated command is already established, so
+// declaring it would be logging a fact that's already true rather than
+// a live decision.
 const OP_MODES = [
   { value: 'offensive', label: 'Offensive' },
   { value: 'defensive', label: 'Defensive' }
@@ -66,11 +63,9 @@ const OP_MODES = [
 // 307.3.2(g)1's PAR triggers, reworded as short action phrases rather
 // than the SOG's own sentences — see the copyright note above.
 const PAR_REASONS = [
-  'Missing / trapped / injured firefighter',
-  'Offensive → defensive change',
-  'Catastrophic event (flashover, backdraft, collapse, Mayday)',
-  'Emergency evacuation',
-  'Fire under control',
-  '15-minute benchmark',
-  'IC discretion'
+  '15 Minutes Elapsed',
+  'Mayday',
+  'Evacuation',
+  'Offensive → Defensive',
+  'IC Discretion'
 ];
