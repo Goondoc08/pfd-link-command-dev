@@ -774,13 +774,6 @@ function handleSheetOption(opt, value){
     saveState(state);
     closeSheet(); render(); return;
   }
-  if (opt === 'par-reset') {
-    appendEntry(state, { t: Date.now(), kind: 'par', reason: 'IC Decision', result: 'complete' });
-    state.parDue = Date.now() + state.parIntervalMin * 60000;
-    lastChimedParDue = null;
-    saveState(state);
-    closeSheet(); render(); return;
-  }
   if (opt === 'par-stop') {
     state.parDue = null;
     lastChimedParDue = null;
@@ -1110,17 +1103,20 @@ $('btn-undo').addEventListener('click', () => {
 
 $('btn-par-timer').addEventListener('click', () => {
   if (!state) return;
-  sheetCtx = { type: 'par-timer-reset' };
-  const html = `
-    <div class="sheet-group">Reset PAR Timer</div>
-    <button type="button" class="sheet-opt" data-opt="par-reset" data-value="complete">
-      Reset — Acknowledge Personnel Status
-    </button>
-    <button type="button" class="sheet-opt" data-opt="par-stop" data-value="">
-      Stop PAR Timer
-    </button>
-  `;
-  openSheet('PAR Options', html);
+  sheetCtx = { type: 'par' };
+  // 307.3.2(g)1's trigger list — picking a reason is the same tap that
+  // completes the PAR and resets the clock (handleSheetOption's
+  // 'par-reason' case). "Stop" is separate: it disables the countdown
+  // entirely without logging a completed PAR, for when the IC is done
+  // needing 15-minute accountability checks.
+  const html = PAR_REASONS.map(r =>
+    `<button type="button" class="sheet-opt" data-opt="par-reason" data-value="${escapeHTML(r)}">${escapeHTML(r)}</button>`
+  ).join('') +
+    `<div class="sheet-group">Other</div>
+     <button type="button" class="sheet-opt destructive" data-opt="par-stop" data-value="">
+       Stop PAR Timer
+     </button>`;
+  openSheet('PAR — Reason', html);
 });
 
 /* ---------- FAQ ---------- */
@@ -1191,17 +1187,6 @@ $('btn-start').addEventListener('click', () => {
 
   render();
   startTicking();
-});
-
-$('btn-par').addEventListener('click', () => {
-  if (!state) return;
-  // 307.3.2(g)1's trigger list — picking one is the same tap that
-  // completes the PAR and resets the clock. See handleSheetOption's
-  // 'par-reason' case.
-  sheetCtx = { type: 'par' };
-  openSheet('PAR — Reason', PAR_REASONS.map(r =>
-    `<button type="button" class="sheet-opt" data-opt="par-reason" data-value="${escapeHTML(r)}">${escapeHTML(r)}</button>`
-  ).join(''));
 });
 
 $('btn-note').addEventListener('click', addNote);
