@@ -38,7 +38,7 @@ const ROSTER = [
   // is already on the board rather than listing both as live options.
   { unit: 'Tower 8',   type: 'truck',  splits: true,  defaultCrew: 4, altFor: 'Engine 81' },
   { unit: 'Engine 81', type: 'engine', splits: false, defaultCrew: 4, altFor: 'Tower 8' },
-  { unit: 'Squad 1',   type: 'squad',  splits: false, defaultCrew: 2 }
+  { unit: 'Squad 1',   type: 'squad',  splits: false, defaultCrew: 1 }
 ];
 
 /* Units that don't behave like line companies — never appear in the Add

@@ -153,6 +153,8 @@ function describeEntry(e){
       return e.unit + ' — crew merged back together';
     case 'assign':
       return e.unit + ' → ' + e.to;
+    case 'unit-recount':
+      return e.unit + ' personnel adjusted to ' + e.personnel;
     case 'unit-clear':
       return e.unit + ' cleared from board';
     case 'role':
@@ -216,6 +218,9 @@ function deriveBoard(log){
       case 'assign':
         if (units[e.unit]) units[e.unit].position = e.to;
         break;
+      case 'unit-recount':
+        if (units[e.unit]) units[e.unit].personnel = e.personnel;
+        break;
       case 'unit-clear':
         delete units[e.unit];
         break;
@@ -269,6 +274,29 @@ function defaultCrewFor(name){
   const r = ROSTER.find(x => x.unit === name);
   return r ? r.defaultCrew : 4;
 }
+
+/* Abbreviation is derived from the roster name itself (first letter +
+   number, e.g. "Ladder 1" -> "L1") rather than a separate lookup table
+   — one source of truth, and it stays correct automatically if roster.js
+   changes. Used for the small square tiles in the Add Unit sheet. */
+function unitAbbrev(name){
+  const m = name.match(/^(\S)\S*\s+(\d+)/);
+  return m ? (m[1].toUpperCase() + m[2]) : name;
+}
+function unitNumber(name){
+  const m = name.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+/* Grouping for the Add Unit sheet: Ladder and Tower share roster type
+   'truck' (see roster.js) and are shown together since they fill the
+   same role on the board; Squad gets its own group since it's neither. */
+const ADD_UNIT_GROUPS = [
+  { label: 'Engines',          type: 'engine' },
+  { label: 'Medics',           type: 'medic' },
+  { label: 'Ladders / Towers', type: 'truck' },
+  { label: 'Squad',            type: 'squad' }
+];
 
 function fmtTime(t){
   return new Date(t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -651,47 +679,132 @@ function setAssignFree(){
   render();
 }
 
+/* Short tap opens the assign sheet (unchanged). A long press (550ms,
+   cancelled by releasing early or dragging) opens the personnel
+   re-count sheet instead — see openUnitRecountSheet. suppressNextClick
+   stops the click that still fires on release from also opening the
+   assign sheet right after the long-press already opened something. */
+let boardLongPressTimer = null;
+let boardLongPressUnit = null;
+let boardPressStart = null;
+let boardSuppressClick = false;
+
+$('board').addEventListener('pointerdown', e => {
+  const tile = e.target.closest('[data-unit]');
+  if (!tile) return;
+  boardLongPressUnit = tile.dataset.unit;
+  boardPressStart = { x: e.clientX, y: e.clientY };
+  boardSuppressClick = false;
+  clearTimeout(boardLongPressTimer);
+  boardLongPressTimer = setTimeout(() => {
+    boardSuppressClick = true;
+    openUnitRecountSheet(boardLongPressUnit);
+  }, 550);
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach(evt =>
+  $('board').addEventListener(evt, () => clearTimeout(boardLongPressTimer))
+);
+$('board').addEventListener('pointermove', e => {
+  if (!boardPressStart) return;
+  if (Math.hypot(e.clientX - boardPressStart.x, e.clientY - boardPressStart.y) > 10) {
+    clearTimeout(boardLongPressTimer);
+  }
+});
 $('board').addEventListener('click', e => {
+  if (boardSuppressClick) { boardSuppressClick = false; return; }
   const tile = e.target.closest('[data-unit]');
   if (!tile) return;
   openAssignSheet(tile.dataset.unit);
 });
 
 /* ---------- add unit ---------- */
-/* Two steps in the same sheet: pick a unit (or "type a name" for mutual
-   aid), then a one-tap personnel stepper. Never blocks on a number pad. */
+/* Small square tiles, grouped and sorted numerically within each
+   group. Tap to select/deselect any number of them, then one batch
+   "Add" appends all of them at once at their roster default crew —
+   no per-unit stepper detour, and no auto-flow into the assign sheet
+   afterward (that only makes sense one unit at a time, and would mean
+   a chain of sheets for a multi-unit add). Reposition/split/clear
+   still happens by tapping the tile on the board afterward — unchanged.
+   Mutual aid stays its own one-at-a-time flow below, since it needs a
+   typed name and has no roster default. */
 
 $('btn-add-unit').addEventListener('click', () => {
   if (!state) return;
-  const { units } = deriveBoard(state.log);
-  const onBoardBase = new Set(Object.keys(units).map(n => units[n].splitOf || n));
-  const rows = ROSTER.map(r => {
-    const already = onBoardBase.has(r.unit);
-    const altBlocked = r.altFor && onBoardBase.has(r.altFor);
-    const grey = already || altBlocked;
-    const note = already ? ' (on board)' : (altBlocked ? ' (' + r.altFor + ' on board)' : '');
-    return `<button type="button" class="sheet-opt${grey ? ' grey' : ''}" data-opt="unit-pick" data-value="${escapeHTML(r.unit)}">${escapeHTML(r.unit + note)}</button>`;
-  }).join('');
-  sheetCtx = { type: 'add-unit' };
-  openSheet('Add Unit', `
-    ${rows}
-    <div class="sheet-group">Mutual aid / other</div>
-    <button type="button" class="sheet-opt" data-opt="mutual-aid-pick">Type a unit name…</button>
-  `);
+  sheetCtx = { type: 'add-unit-batch', selected: new Set() };
+  renderAddUnitBatchSheet();
 });
 
-function renderAddUnitCrewStep(){
-  setSheetContent(sheetCtx.name, `
-    <div class="clabel" style="text-align:center">Personnel</div>
+function renderAddUnitBatchSheet(){
+  const { units } = deriveBoard(state.log);
+  const onBoardBase = new Set(Object.keys(units).map(n => units[n].splitOf || n));
+  const groupsHTML = ADD_UNIT_GROUPS.map(g => {
+    const entries = ROSTER.filter(r => r.type === g.type)
+      .slice().sort((a, b) => unitNumber(a.unit) - unitNumber(b.unit));
+    if (!entries.length) return '';
+    const tiles = entries.map(r => {
+      const already = onBoardBase.has(r.unit);
+      const altBlocked = r.altFor && onBoardBase.has(r.altFor);
+      const disabled = already || altBlocked;
+      const selected = sheetCtx.selected.has(r.unit);
+      return `<button type="button" class="unit-pick-tile${selected ? ' selected' : ''}${disabled ? ' grey' : ''}"
+        data-unit-toggle="${escapeHTML(r.unit)}" ${disabled ? 'disabled' : ''}
+        aria-label="${escapeHTML(r.unit)}">${escapeHTML(unitAbbrev(r.unit))}</button>`;
+    }).join('');
+    return `<div class="sheet-group">${escapeHTML(g.label)}</div><div class="unit-pick-row">${tiles}</div>`;
+  }).join('');
+
+  const n = sheetCtx.selected.size;
+  setSheetContent('Add Units', `
+    ${groupsHTML}
+    <div class="sheet-group">Mutual aid / other</div>
+    <button type="button" class="sheet-opt" data-opt="mutual-aid-pick">Type a unit name…</button>
+    <button type="button" class="primary" id="sheet-add-batch-confirm" style="width:100%;margin-top:14px" ${n ? '' : 'disabled'}>
+      Add ${n ? n + ' Unit' + (n === 1 ? '' : 's') : 'Units'}
+    </button>
+  `);
+}
+
+function toggleUnitPick(name){
+  if (!sheetCtx || sheetCtx.type !== 'add-unit-batch') return;
+  if (sheetCtx.selected.has(name)) sheetCtx.selected.delete(name);
+  else sheetCtx.selected.add(name);
+  renderAddUnitBatchSheet();
+}
+
+function confirmAddUnitBatch(){
+  if (!state || !sheetCtx || sheetCtx.type !== 'add-unit-batch') return;
+  const selected = [...sheetCtx.selected];
+  if (!selected.length) return;
+  selected.forEach(name => {
+    appendEntry(state, { t: Date.now(), kind: 'unit-arrive', unit: name, personnel: defaultCrewFor(name) });
+  });
+  closeSheet();
+  render();
+}
+
+/* ---------- adjust personnel (long-press an on-board unit) ---------- */
+
+function openUnitRecountSheet(unitName){
+  const { units } = deriveBoard(state.log);
+  const u = units[unitName];
+  if (!u) return;
+  sheetCtx = { type: 'unit-recount', unit: unitName, personnel: u.personnel };
+  openSheet('Adjust Personnel', `
+    <div class="clabel" style="text-align:center">${escapeHTML(unitName)}</div>
     <div class="stepper">
       <button type="button" data-step="-1">−</button>
       <span class="sv" id="crew-sv">${sheetCtx.personnel}</span>
       <button type="button" data-step="1">+</button>
     </div>
-    <button type="button" class="primary" id="sheet-add-confirm" style="width:100%;margin-top:6px">
-      Add ${escapeHTML(sheetCtx.name)}
-    </button>
+    <button type="button" class="primary" id="sheet-recount-confirm" style="width:100%;margin-top:6px">Save</button>
   `);
+}
+
+function confirmUnitRecount(){
+  if (!state || !sheetCtx || sheetCtx.type !== 'unit-recount') return;
+  appendEntry(state, { t: Date.now(), kind: 'unit-recount', unit: sheetCtx.unit, personnel: sheetCtx.personnel });
+  closeSheet();
+  render();
 }
 
 function openMutualAidStep(){
@@ -709,7 +822,7 @@ function openMutualAidStep(){
 }
 
 function stepPersonnel(delta){
-  if (!sheetCtx || sheetCtx.type !== 'add-unit-crew') return;
+  if (!sheetCtx || (sheetCtx.type !== 'add-unit-crew' && sheetCtx.type !== 'unit-recount')) return;
   sheetCtx.personnel = Math.max(1, sheetCtx.personnel + delta);
   $('crew-sv').textContent = sheetCtx.personnel;
 }
@@ -803,11 +916,6 @@ function handleSheetOption(opt, value){
     appendEntry(state, { t: Date.now(), kind: 'unit-clear', unit: sheetCtx.unit });
     closeSheet(); render(); return;
   }
-  if (opt === 'unit-pick') {
-    sheetCtx = { type: 'add-unit-crew', name: value, personnel: defaultCrewFor(value) };
-    renderAddUnitCrewStep();
-    return;
-  }
   if (opt === 'mutual-aid-pick') {
     openMutualAidStep();
     return;
@@ -817,11 +925,15 @@ function handleSheetOption(opt, value){
 $('sheet-body').addEventListener('click', e => {
   const opt = e.target.closest('[data-opt]');
   if (opt) { handleSheetOption(opt.dataset.opt, opt.dataset.value); return; }
+  const toggle = e.target.closest('[data-unit-toggle]');
+  if (toggle && !toggle.disabled) { toggleUnitPick(toggle.dataset.unitToggle); return; }
   const step = e.target.closest('[data-step]');
   if (step) { stepPersonnel(parseInt(step.dataset.step, 10)); return; }
-  if (e.target.id === 'sheet-add-confirm')     { confirmAddUnit(); return; }
-  if (e.target.id === 'sheet-role-free-go')    { setRoleFree(); return; }
-  if (e.target.id === 'sheet-assign-free-go')  { setAssignFree(); return; }
+  if (e.target.id === 'sheet-add-confirm')        { confirmAddUnit(); return; }
+  if (e.target.id === 'sheet-add-batch-confirm')  { confirmAddUnitBatch(); return; }
+  if (e.target.id === 'sheet-recount-confirm')    { confirmUnitRecount(); return; }
+  if (e.target.id === 'sheet-role-free-go')       { setRoleFree(); return; }
+  if (e.target.id === 'sheet-assign-free-go')     { setAssignFree(); return; }
 });
 
 $('sheet-close').addEventListener('click', closeSheet);
