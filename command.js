@@ -861,12 +861,15 @@ $('resources').addEventListener('click', e => {
 });
 
 /* ---------- next considerations (401.3, per occupancy) ---------- */
-/* A toggle, not a one-way mark: tapping logs it done and swaps the
-   label to "Complete"; tapping again logs 'benchmark-clear' and swaps
-   it back. Both directions are real, timestamped log entries — this
-   is for "that was a mistake, it isn't actually done," a genuine
-   correction worth recording, not the same thing Phase 7's
-   undo-last-action covers (removing the last action outright). */
+/* A toggle, not a one-way mark: tapping logs it done; tapping again
+   logs 'benchmark-clear' and reopens it. Both directions are real,
+   timestamped log entries — this is for "that was a mistake, it
+   isn't actually done," a genuine correction worth recording, not the
+   same thing Phase 7's undo-last-action covers (removing the last
+   action outright). The label never changes to "Complete" — with
+   several buttons done at once, you need the original name still
+   readable to pick the right one to un-tap; a small status line under
+   it carries the done state instead. */
 
 function renderChecklist(){
   const { benchmarksDone } = deriveBoard(state.log);
@@ -875,7 +878,8 @@ function renderChecklist(){
     const done = !!benchmarksDone[b.key];
     return `<button type="button" class="ck-item${done ? ' done' : ''}" data-benchmark="${escapeHTML(b.key)}"
       data-label="${escapeHTML(b.label)}">
-      <span class="lb">${done ? 'COMPLETE' : escapeHTML(b.label)}</span>
+      <span class="lb">${escapeHTML(b.label)}</span>
+      ${done ? '<span class="status">Complete</span>' : ''}
     </button>`;
   }).join('');
 }
