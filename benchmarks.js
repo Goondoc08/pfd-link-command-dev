@@ -14,15 +14,19 @@
    Short action phrases only, not SOG prose — 307 and 401 are
    Lexipol-copyrighted and this is a public site. */
 
+// Short, button-width labels — these are tap targets, not sentences.
+// 'accountability' was dropped from this list: the top row's
+// Accountability chip already covers it (set once an officer is
+// named), so a second "Accountability established" button here was
+// redundant with that chip.
 const BENCHMARKS_CORE = [
-  { key: '360',              label: '360 complete' },
-  { key: 'accountability',   label: 'Accountability established' },
-  { key: 'water-supply',     label: 'Water supply established' },
-  { key: 'primary-search',   label: 'Primary search complete' },
-  { key: 'rit',              label: 'RIT in place' },
-  { key: 'ventilation',      label: 'Ventilation coordinated' },
-  { key: 'under-control',    label: 'Fire under control' },
-  { key: 'secondary-search', label: 'Secondary search complete' }
+  { key: '360',              label: '360' },
+  { key: 'water-supply',     label: 'Water Supply' },
+  { key: 'rit',              label: 'RIT' },
+  { key: 'under-control',    label: 'Fire Under Control' },
+  { key: 'primary-search',   label: 'Primary Search' },
+  { key: 'secondary-search', label: 'Secondary Search' },
+  { key: 'ventilation',      label: 'Ventilation' }
 ];
 
 const BENCHMARKS_BY_OCCUPANCY = {
