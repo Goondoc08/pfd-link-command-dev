@@ -1,6 +1,6 @@
 /* Pearland Fire Link — service worker
    BUMP THIS VERSION EVERY TIME YOU DEPLOY, or phones will keep the old links. */
-const CACHE = 'pfd-link-v28';
+const CACHE = 'pfd-link-v29';
 
 const SHELL = [
   './',
@@ -33,13 +33,21 @@ self.addEventListener('activate', e => {
 });
 
 /* Network-first so a pushed link fix shows up immediately;
-   cache is only the offline safety net. */
+   cache is only the offline safety net. `cache: 'no-store'` is the
+   part that actually makes that true — a plain fetch(e.request) is
+   still subject to the browser's ordinary HTTP cache, and GitHub
+   Pages sends Cache-Control: max-age=600 on these files. Without
+   this override, "network-first" could still be silently satisfied
+   from the browser's disk cache for up to 10 minutes after any
+   deploy, surviving even a full close-and-reopen of the tab —
+   which is exactly the bug this fixes (Aug 8, 2026: a Phase 8
+   tester saw a stale Add Unit sheet that a tab restart didn't clear). */
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   if (new URL(e.request.url).origin !== self.location.origin) return;
 
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-store' })
       .then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy));
