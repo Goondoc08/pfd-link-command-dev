@@ -316,13 +316,13 @@ function tick(){
    occupies its slot and nothing below it shifts when it turns on. */
 function parOverdueFlagHTML(mins){
   const hidden = mins === null;
-  const text = hidden
-    ? 'Due 0 minutes ago.'
-    : 'Due ' + (mins < 1 ? 'less than a minute' : mins + ' minute' + (mins === 1 ? '' : 's')) + ' ago.';
+  const line2 = hidden
+    ? '0 minutes ago.'
+    : (mins < 1 ? 'Less than a minute' : mins + ' minute' + (mins === 1 ? '' : 's')) + ' ago.';
   return '<div class="par-due-box' + (hidden ? ' par-due-box--hidden' : '') + '"' +
     (hidden ? ' aria-hidden="true"' : '') +
-    '><span>▲</span><span class="par-due-text"><b class="par-overdue-label">PAR OVERDUE.</b> ' +
-    text + '</span><span>▲</span></div>';
+    '><span>▲</span><span class="par-due-text"><b class="par-overdue-label">PAR OVERDUE.</b>' +
+    '<span class="par-due-line2">' + line2 + '</span></span><span>▲</span></div>';
 }
 
 function updateParTimer(){
@@ -910,7 +910,7 @@ function renderParSuggestion(){
   $('par-suggestion').innerHTML =
     '<div class="par-suggest-box' + (hidden ? ' par-suggest-box--hidden' : '') + '"' +
     (hidden ? ' aria-hidden="true"' : '') +
-    '><span><b>Consider a PAR.</b> ' + escapeHTML(text) + '.</span></div>';
+    '><b>Consider PAR.</b><span class="par-suggest-line2">' + escapeHTML(text) + '.</span></div>';
 }
 
 /* ---------- export ---------- */
