@@ -855,25 +855,29 @@ $('resources').addEventListener('click', e => {
 });
 
 /* ---------- next considerations (401.3, per occupancy) ---------- */
-/* One-directional: checking an item logs it done; tapping a done item
-   is a no-op — a completed 360 doesn't become undone. Reversing a
+/* One-directional: tapping a button logs it done and then genuinely
+   disables it — a completed 360 doesn't become undone. Reversing a
    mistaken tap is what Phase 7's undo-last-action is for. */
 
 function renderChecklist(){
   const { benchmarksDone } = deriveBoard(state.log);
   const items = benchmarksFor(state.occupancy);
-  $('checklist').innerHTML = items.map((b, i) => {
+  $('checklist').innerHTML = items.map(b => {
     const done = !!benchmarksDone[b.key];
-    return `<li class="${done ? 'done' : ''}" data-benchmark="${escapeHTML(b.key)}" data-label="${escapeHTML(b.label)}">
-      <span class="idx">${i + 1}</span><i class="bx"></i><span class="lb">${escapeHTML(b.label)}</span>
-    </li>`;
+    return `<button type="button" class="ck-item" data-benchmark="${escapeHTML(b.key)}"
+      data-label="${escapeHTML(b.label)}"${done ? ' disabled' : ''}>
+      <span class="lb">${escapeHTML(b.label)}</span>
+      ${done ? '<span class="done-overlay" aria-hidden="true"></span>' : ''}
+    </button>`;
   }).join('');
 }
 
 $('checklist').addEventListener('click', e => {
-  const li = e.target.closest('[data-benchmark]');
-  if (!li || li.classList.contains('done') || !state) return;
-  appendEntry(state, { t: Date.now(), kind: 'benchmark', key: li.dataset.benchmark, label: li.dataset.label });
+  // Disabled buttons don't dispatch click at all once done — no extra
+  // "already done" guard needed here.
+  const btn = e.target.closest('[data-benchmark]');
+  if (!btn || !state) return;
+  appendEntry(state, { t: Date.now(), kind: 'benchmark', key: btn.dataset.benchmark, label: btn.dataset.label });
   render();
 });
 

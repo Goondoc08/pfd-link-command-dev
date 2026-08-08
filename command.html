@@ -120,23 +120,28 @@
 
   #par-suggestion:empty{margin:0}
 
-  /* checklist — 2-column grid to cut the section's height roughly in
-     half. Grid flow no longer matches a single top-to-bottom read, so
-     each item carries its own order number (.idx) instead of relying
-     on position alone. No per-item border — with two columns a
-     bottom rule doesn't line up across them, and it isn't needed once
-     the number states the order directly. */
-  ul.ck{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
-  ul.ck li{display:flex;gap:7px;align-items:flex-start;padding:9px 2px;cursor:pointer;min-height:48px}
-  ul.ck .idx{font-size:11px;font-weight:700;color:var(--faint);flex:0 0 auto;
-             width:13px;text-align:right;margin-top:4px}
-  ul.ck .bx{width:19px;height:19px;border:2px solid var(--faint);border-radius:5px;
-            flex:0 0 auto;margin-top:2px}
-  ul.ck li.done .bx{background:var(--green);border-color:var(--green);position:relative}
-  ul.ck li.done .bx::after{content:"";position:absolute;left:4px;top:0px;width:5px;height:9px;
-                           border:solid #08130c;border-width:0 2px 2px 0;transform:rotate(45deg)}
-  ul.ck span.lb{font-size:13.5px;padding-top:1px;line-height:1.35}
-  ul.ck li.done span.lb{color:var(--dim);text-decoration:line-through}
+  /* checklist — a wrapping row of real buttons, not a checkbox list
+     (part of the shift to an all-button, touchscreen-forward layout).
+     Sized exactly like .rolechip (the Cmd Transferred / Ops Mode /
+     Safety / Accountability row) rather than a fixed 2-column grid, so
+     the two rows read as the same kind of control. No order number —
+     these don't need to imply a sequence the way the top row's
+     one-time declarations don't either. */
+  .ck{display:flex;flex-wrap:wrap;gap:8px}
+  .ck-item{position:relative;flex:1;min-width:104px;display:flex;align-items:center;
+           background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+           padding:9px 11px;min-height:48px;font-family:inherit;text-align:left;
+           cursor:pointer;overflow:hidden}
+  .ck-item:active{background:var(--line)}
+  .ck-item .lb{font-size:14.5px;font-weight:700;color:var(--txt);line-height:1.3}
+  /* Done: a translucent overlay over the whole button rather than a
+     checkmark-and-strikethrough — the label stays legible through it,
+     and the button goes genuinely unclickable (native `disabled`),
+     not just a no-op click handler. */
+  .ck-item:disabled{cursor:default}
+  .ck-item .done-overlay{position:absolute;inset:0;background:rgba(58,168,95,.45);
+                          display:flex;align-items:center;justify-content:flex-end;padding-right:10px}
+  .ck-item .done-overlay::after{content:"✓";color:#fff;font-weight:800;font-size:15px}
 
   /* pinned roles + command — 307.3.2(a)1 makes the IC directly
      responsible for these rather than accounting for them through a
@@ -314,7 +319,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
 
     <h2>Next Considerations</h2>
     <div class="card">
-      <ul class="ck" id="checklist"></ul>
+      <div class="ck" id="checklist"></div>
     </div>
 
     <h2>Units</h2>
