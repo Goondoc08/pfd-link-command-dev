@@ -754,7 +754,7 @@ function renderAddUnitBatchSheet(){
   }).join('');
 
   const n = sheetCtx.selected.size;
-  setSheetContent('Add Units', `
+  openSheet('Add Units', `
     ${groupsHTML}
     <div class="sheet-group">Mutual aid / other</div>
     <button type="button" class="sheet-opt" data-opt="mutual-aid-pick">Type a unit name…</button>
