@@ -203,6 +203,19 @@
   .unittile .pc{color:var(--dim);font-weight:600;font-size:13px;margin-left:4px}
   .board-empty{color:var(--faint);font-size:14px}
 
+  /* Add Unit sheet — small square multi-select tiles (E2, M1, L1…),
+     grouped by type and sorted numerically (see ADD_UNIT_GROUPS /
+     unitAbbrev in command.js). Selected state mirrors the primary
+     button's green; greyed-disabled state mirrors .sheet-opt.grey. */
+  .unit-pick-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+  .unit-pick-tile{width:54px;height:54px;flex:0 0 auto;background:var(--panel2);
+                   border:1px solid var(--line);border-radius:10px;color:var(--txt);
+                   font-family:inherit;font-weight:800;font-size:14px;padding:0;
+                   min-height:48px;cursor:pointer}
+  .unit-pick-tile:active{background:var(--line)}
+  .unit-pick-tile.selected{background:var(--green);border-color:var(--green);color:#08130c}
+  .unit-pick-tile.grey{opacity:.35;pointer-events:none}
+
   /* stepper (personnel count) */
   .stepper{display:flex;align-items:center;gap:14px;justify-content:center;margin:10px 0}
   .stepper button{width:48px;padding:0;font-size:22px;line-height:1}
