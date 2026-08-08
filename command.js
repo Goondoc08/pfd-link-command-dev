@@ -319,9 +319,10 @@ function parOverdueFlagHTML(mins){
   const text = hidden
     ? 'Due 0 minutes ago.'
     : 'Due ' + (mins < 1 ? 'less than a minute' : mins + ' minute' + (mins === 1 ? '' : 's')) + ' ago.';
-  return '<div class="flag urgent par-overdue-flag' + (hidden ? ' par-overdue-flag--hidden' : '') + '"' +
+  return '<div class="par-due-box' + (hidden ? ' par-due-box--hidden' : '') + '"' +
     (hidden ? ' aria-hidden="true"' : '') +
-    '><span>▲</span><span><b class="par-overdue-label">PAR OVERDUE.</b> ' + text + '</span><span>▲</span></div>';
+    '><span>▲</span><span class="par-due-text"><b class="par-overdue-label">PAR OVERDUE.</b> ' +
+    text + '</span><span>▲</span></div>';
 }
 
 function updateParTimer(){
@@ -896,14 +897,20 @@ $('checklist').addEventListener('click', e => {
 
 /* ---------- PAR suggestion ---------- */
 /* Never a forced modal — see the plan. Just a dismissible-by-nature
-   banner that stops showing once any PAR logs, computed fresh from the
-   log by deriveBoard rather than tracked as separate UI state. */
+   box that stops showing once any PAR logs, computed fresh from the
+   log by deriveBoard rather than tracked as separate UI state. Always
+   rendered, same reserved-space trick as the PAR due box next to it —
+   visibility toggles, not display, so the row next to PAR due doesn't
+   shift depending on whether there's a suggestion right now. */
 
 function renderParSuggestion(){
   const { parSuggestion } = deriveBoard(state.log);
-  $('par-suggestion').innerHTML = parSuggestion
-    ? `<div class="flag suggest"><span>▲</span><span><b>Consider a PAR.</b> ${escapeHTML(parSuggestion)}.</span></div>`
-    : '';
+  const hidden = !parSuggestion;
+  const text = parSuggestion || 'placeholder';
+  $('par-suggestion').innerHTML =
+    '<div class="par-suggest-box' + (hidden ? ' par-suggest-box--hidden' : '') + '"' +
+    (hidden ? ' aria-hidden="true"' : '') +
+    '><span><b>Consider a PAR.</b> ' + escapeHTML(text) + '.</span></div>';
 }
 
 /* ---------- export ---------- */

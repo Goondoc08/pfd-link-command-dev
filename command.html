@@ -110,15 +110,33 @@
 
   .flag.urgent{background:#2c1414;border-color:#5c2020;color:#f0a8a0}
   .flag.urgent b{color:#fff}
-  /* Always rendered (see parOverdueFlagHTML) so #par-banner's box
-     reserves its space up front — visibility, not display, is what
-     toggles, so nothing below it shifts when PAR goes overdue. */
-  .par-overdue-flag--hidden{visibility:hidden}
-  /* Bumped for visibility on the fireground; the flag box itself
-     (padding/border-radius) is untouched, only this label's text. */
-  .par-overdue-label{font-size:16px}
 
-  #par-suggestion:empty{margin:0}
+  /* PAR due + the "consider a PAR" recommendation, side by side in
+     one row rather than stacked full-width bars — same reserved-space
+     idea as before (visibility, not display, toggles each box) but
+     now split so both fit in the space PAR due alone used to take. */
+  /* The boxes render inside #par-banner/#par-suggestion, which are the
+     actual flex children here and stretch to match each other's
+     height by default — but a shorter box wouldn't fill that stretched
+     wrapper on its own, so #par-banner/#par-suggestion get display:flex
+     too, and the box itself is height:100% of that. */
+  .par-row{display:flex;gap:10px;margin-top:14px}
+  #par-banner, #par-suggestion{display:flex}
+  .par-due-box, .par-suggest-box{flex:1;min-width:0;height:100%;border-radius:10px;padding:10px 12px;
+                                  display:flex;align-items:center;font-size:13px}
+  .par-due-box--hidden, .par-suggest-box--hidden{visibility:hidden}
+  /* Bold, high-visibility: same red as the PAR timer's overdue stage,
+     white text, no mistaking it. Triangles pinned to both edges via
+     space-between, vertically centered; the text between them is its
+     own flex:1 span so it centers independently of the triangles. */
+  .par-due-box{justify-content:space-between;gap:8px;background:var(--red);
+               border:1px solid var(--red);font-weight:700;color:#fff}
+  .par-due-box .par-due-text{flex:1;text-align:center}
+  .par-due-box .par-overdue-label{font-size:16px}
+  /* Subtler and yellow, text only — no triangles. */
+  .par-suggest-box{justify-content:center;text-align:center;background:rgba(224,165,44,.14);
+                    border:1px solid rgba(224,165,44,.4);color:#f0d798}
+  .par-suggest-box b{color:#f5df9e}
 
   /* checklist — a grid of real buttons, not a checkbox list (part of
      the shift to an all-button, touchscreen-forward layout). No
@@ -319,8 +337,10 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
 
     <div class="rolesrow" id="topchips-row"></div>
 
-    <div id="par-banner"></div>
-    <div id="par-suggestion"></div>
+    <div class="par-row">
+      <div id="par-banner"></div>
+      <div id="par-suggestion"></div>
+    </div>
 
     <h2>Next Considerations</h2>
     <div class="card">
