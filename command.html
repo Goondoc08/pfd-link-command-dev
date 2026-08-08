@@ -116,27 +116,37 @@
      idea as before (visibility, not display, toggles each box) but
      now split so both fit in the space PAR due alone used to take. */
   /* The boxes render inside #par-banner/#par-suggestion, which are the
-     actual flex children here and stretch to match each other's
-     height by default — but a shorter box wouldn't fill that stretched
-     wrapper on its own, so #par-banner/#par-suggestion get display:flex
-     too, and the box itself is height:100% of that. */
+     ACTUAL flex children of .par-row — flex:1 belongs on them, not just
+     the box inside. Without it, each wrapper sizes to its own content
+     (a short one-line suggestion vs. a longer PAR-due sentence), so the
+     "even split" would drift depending on what's currently showing.
+     display:flex + height:100% on the box makes it fill that wrapper's
+     stretched height too, so the two boxes always match each other. */
   .par-row{display:flex;gap:10px;margin-top:14px}
-  #par-banner, #par-suggestion{display:flex}
+  #par-banner, #par-suggestion{flex:1;min-width:0;display:flex}
   .par-due-box, .par-suggest-box{flex:1;min-width:0;height:100%;border-radius:10px;padding:10px 12px;
                                   display:flex;align-items:center;font-size:13px}
   .par-due-box--hidden, .par-suggest-box--hidden{visibility:hidden}
   /* Bold, high-visibility: same red as the PAR timer's overdue stage,
      white text, no mistaking it. Triangles pinned to both edges via
-     space-between, vertically centered; the text between them is its
-     own flex:1 span so it centers independently of the triangles. */
-  .par-due-box{justify-content:space-between;gap:8px;background:var(--red);
+     space-between, vertically centered. The sentence is forced onto
+     two explicit lines ("PAR OVERDUE." / "X minutes ago.") rather than
+     left to wrap wherever the text happens to break. */
+  .par-due-box{justify-content:space-between;gap:6px;background:var(--red);
                border:1px solid var(--red);font-weight:700;color:#fff}
-  .par-due-box .par-due-text{flex:1;text-align:center}
+  .par-due-box .par-due-text{flex:1;display:flex;flex-direction:column;align-items:center;
+                              justify-content:center;text-align:center}
   .par-due-box .par-overdue-label{font-size:16px}
-  /* Subtler and yellow, text only — no triangles. */
-  .par-suggest-box{justify-content:center;text-align:center;background:rgba(224,165,44,.14);
-                    border:1px solid rgba(224,165,44,.4);color:#f0d798}
-  .par-suggest-box b{color:#f5df9e}
+  .par-due-box .par-due-line2{font-size:13px;margin-top:2px}
+  /* Subtler and yellow, text only — no triangles. Same two-explicit-
+     lines treatment: "Consider PAR" / the reason, reason sized down
+     since it's the longer of the two ("Fire declared under control."
+     etc.) and needs to fit one line at half the row's width. */
+  .par-suggest-box{flex-direction:column;justify-content:center;text-align:center;
+                    background:rgba(224,165,44,.14);border:1px solid rgba(224,165,44,.4);
+                    color:#f0d798}
+  .par-suggest-box b{color:#f5df9e;font-size:13px}
+  .par-suggest-box .par-suggest-line2{font-size:11px;margin-top:2px}
 
   /* checklist — a grid of real buttons, not a checkbox list (part of
      the shift to an all-button, touchscreen-forward layout). No
