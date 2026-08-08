@@ -166,6 +166,8 @@ function describeEntry(e){
       return 'Operational mode: ' + modeLabel(OP_MODES, e.mode);
     case 'benchmark':
       return e.label;
+    case 'benchmark-clear':
+      return e.label + ' unmarked';
     case 'incident-end':
       return 'Incident ended';
     default:
@@ -233,6 +235,10 @@ function deriveBoard(log){
       case 'benchmark':
         benchmarksDone[e.key] = e.t;
         if (e.key === 'under-control') lastUnderControlAt = e.t;
+        break;
+      case 'benchmark-clear':
+        delete benchmarksDone[e.key];
+        if (e.key === 'under-control') lastUnderControlAt = null;
         break;
       case 'par':
         lastPar = e.t;
@@ -855,29 +861,32 @@ $('resources').addEventListener('click', e => {
 });
 
 /* ---------- next considerations (401.3, per occupancy) ---------- */
-/* One-directional: tapping a button logs it done and then genuinely
-   disables it — a completed 360 doesn't become undone. Reversing a
-   mistaken tap is what Phase 7's undo-last-action is for. */
+/* A toggle, not a one-way mark: tapping logs it done and swaps the
+   label to "Complete"; tapping again logs 'benchmark-clear' and swaps
+   it back. Both directions are real, timestamped log entries — this
+   is for "that was a mistake, it isn't actually done," a genuine
+   correction worth recording, not the same thing Phase 7's
+   undo-last-action covers (removing the last action outright). */
 
 function renderChecklist(){
   const { benchmarksDone } = deriveBoard(state.log);
   const items = benchmarksFor(state.occupancy);
   $('checklist').innerHTML = items.map(b => {
     const done = !!benchmarksDone[b.key];
-    return `<button type="button" class="ck-item" data-benchmark="${escapeHTML(b.key)}"
-      data-label="${escapeHTML(b.label)}"${done ? ' disabled' : ''}>
-      <span class="lb">${escapeHTML(b.label)}</span>
-      ${done ? '<span class="done-overlay" aria-hidden="true"></span>' : ''}
+    return `<button type="button" class="ck-item${done ? ' done' : ''}" data-benchmark="${escapeHTML(b.key)}"
+      data-label="${escapeHTML(b.label)}">
+      <span class="lb">${done ? 'COMPLETE' : escapeHTML(b.label)}</span>
     </button>`;
   }).join('');
 }
 
 $('checklist').addEventListener('click', e => {
-  // Disabled buttons don't dispatch click at all once done — no extra
-  // "already done" guard needed here.
   const btn = e.target.closest('[data-benchmark]');
   if (!btn || !state) return;
-  appendEntry(state, { t: Date.now(), kind: 'benchmark', key: btn.dataset.benchmark, label: btn.dataset.label });
+  const key = btn.dataset.benchmark;
+  const { benchmarksDone } = deriveBoard(state.log);
+  const kind = benchmarksDone[key] ? 'benchmark-clear' : 'benchmark';
+  appendEntry(state, { t: Date.now(), kind, key, label: btn.dataset.label });
   render();
 });
 
