@@ -176,6 +176,35 @@
   .ck-item .status{font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
                     color:#c9f2d6;margin-top:3px}
 
+  /* Assigned Task — same uniform-grid tile language as the checklist
+     above (auto-fill/minmax, no horizontal scroll, 2-line label room),
+     but these are drop targets rather than buttons: dragging a unit
+     tile from Units onto one assigns it to that task, the same as
+     picking it from the tap-to-assign sheet (see openUnitDrag* in
+     command.js). Static and always all shown, unlike the board's
+     position groups which only exist once something's assigned to
+     them — the whole point is a fixed target to drag onto before
+     anything's assigned yet. */
+  .task-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+  .task-tile{position:relative;min-height:68px;background:var(--panel2);border:1px solid var(--line);
+             border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;
+             justify-content:center;text-align:center}
+  .task-tile .lb{font-size:13.5px;font-weight:700;color:var(--txt);line-height:1.25}
+  .task-tile .assignees{font-size:10.5px;font-weight:800;letter-spacing:.3px;color:var(--green);
+                         margin-top:3px;overflow-wrap:anywhere}
+  /* Highlighted while a drag is hovering over it, cleared the instant
+     it isn't (see updateDragHover) — the only feedback a touch drag
+     gets, since there's no native cursor to show a drop is valid. */
+  .task-tile.drag-over{border-color:var(--green);background:rgba(58,168,95,.22)}
+
+  /* Follows the pointer during a unit drag. pointer-events:none is
+     load-bearing — elementFromPoint() (how the drop target is found)
+     would otherwise hit the ghost itself instead of whatever's
+     underneath it. */
+  .drag-ghost{position:fixed;z-index:50;pointer-events:none;transform:translate(-50%,-50%);
+              background:var(--green);color:#08130c;font-weight:800;font-size:13px;
+              padding:8px 12px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+
   /* pinned roles + command — 307.3.2(a)1 makes the IC directly
      responsible for these rather than accounting for them through a
      division, so they sit above the board, not inside it */
@@ -368,6 +397,11 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
     <h2>Next Considerations</h2>
     <div class="card">
       <div class="ck" id="checklist"></div>
+    </div>
+
+    <h2>Assigned Task</h2>
+    <div class="card">
+      <div class="task-row" id="task-row"></div>
     </div>
 
     <h2>Units</h2>
