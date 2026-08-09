@@ -50,13 +50,25 @@ const SPECIAL_UNITS = {
 };
 
 /* Positions offered on the assign sheet, grouped for the picker.
-   Task assignments and the six-item list come from 401.3; sectors and
+   Task assignments and the six-item list come from 401.3 (Secondary
+   Search added Aug 8 — it only existed as a Next Considerations
+   checklist item before, not an assignable position); sectors and
    staging levels are standard fireground vocabulary; the medic group
    covers the specific jobs 21-03/25-09/25-10/25-12 give 1st-2nd due
-   medics. Free text is always available in addition to this list. */
+   medics. Free text is always available in addition to this list.
+
+   Several items here were shortened Aug 8 ("Initial Fire Attack" ->
+   "Fire Attack", "Primary Search & Rescue" -> "Primary Search",
+   "Outside Vent (OV)" -> "OV", "EMS / Medical Standby" -> "Medical")
+   to match the Assigned Task drag targets in command.js/command.html
+   exactly — those are a second way to reach the same positions
+   (drag a unit onto a task tile instead of tap unit -> pick from this
+   list), and a unit assigned via one path has to land on the same
+   position string as the other or the board would fragment into two
+   groups for what's really one job. */
 const POSITIONS = [
   { group: 'Staging',         items: ['Staging — Level 1', 'Staging — Level 2'] },
-  { group: 'Task Assignment', items: ['Scene Safety', 'Initial Fire Attack', 'Primary Search & Rescue', 'Ventilation', 'RIT', 'Water Supply'] },
+  { group: 'Task Assignment', items: ['Scene Safety', 'Fire Attack', 'Primary Search', 'Secondary Search', 'Ventilation', 'RIT', 'Water Supply'] },
   { group: 'Sector',          items: ['Sector A', 'Sector B', 'Sector C', 'Sector D', 'Roof', 'Interior', 'Exposure'] },
-  { group: 'Medic',           items: ['Outside Vent (OV)', 'Utilities', 'EMS / Medical Standby', 'Rehab', 'Triage'] }
+  { group: 'Medic',           items: ['OV', 'Utilities', 'Medical', 'Rehab', 'Triage'] }
 ];

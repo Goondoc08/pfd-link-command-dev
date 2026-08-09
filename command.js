@@ -298,6 +298,34 @@ const ADD_UNIT_GROUPS = [
   { label: 'Squad',            type: 'squad' }
 ];
 
+/* Assigned Task drop targets. Must match POSITIONS in roster.js
+   exactly (same strings) — a unit dragged here and a unit tapped and
+   assigned from the sheet's Task Assignment / Medic groups need to
+   land on the identical position string or the board fragments into
+   two groups for what's really one job. Not every POSITIONS entry is
+   here — Scene Safety, Utilities, Rehab, Triage, sectors, and staging
+   levels stay sheet-only; this is a curated fast-access subset. */
+const TASK_TILES = [
+  'Fire Attack', 'Primary Search', 'Secondary Search', 'Ventilation',
+  'RIT', 'Water Supply', 'OV', 'Medical'
+];
+
+function renderTaskRow(){
+  const { units } = deriveBoard(state.log);
+  const byTask = {};
+  Object.keys(units).forEach(n => {
+    const pos = units[n].position;
+    if (TASK_TILES.includes(pos)) (byTask[pos] = byTask[pos] || []).push(n);
+  });
+  $('task-row').innerHTML = TASK_TILES.map(t => {
+    const assigned = byTask[t] || [];
+    return `<div class="task-tile" data-task="${escapeHTML(t)}">
+      <span class="lb">${escapeHTML(t)}</span>
+      ${assigned.length ? `<span class="assignees">${escapeHTML(assigned.map(unitAbbrev).join(', '))}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
 function fmtTime(t){
   return new Date(t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
@@ -679,11 +707,13 @@ function setAssignFree(){
   render();
 }
 
-/* Short tap opens the assign sheet (unchanged). A long press (550ms,
-   cancelled by releasing early or dragging) opens the personnel
-   re-count sheet instead — see openUnitRecountSheet. suppressNextClick
-   stops the click that still fires on release from also opening the
-   assign sheet right after the long-press already opened something. */
+/* Three gestures share one tile now: short tap opens the assign sheet
+   (unchanged); a 550ms hold without moving opens the personnel
+   re-count sheet (openUnitRecountSheet); moving past a 10px threshold
+   before either fires starts a drag onto an Assigned Task tile
+   instead (see the drag block below). boardSuppressClick stops the
+   click that still fires on release from also opening the assign
+   sheet right after a long-press or drag already did something. */
 let boardLongPressTimer = null;
 let boardLongPressUnit = null;
 let boardPressStart = null;
@@ -695,27 +725,94 @@ $('board').addEventListener('pointerdown', e => {
   boardLongPressUnit = tile.dataset.unit;
   boardPressStart = { x: e.clientX, y: e.clientY };
   boardSuppressClick = false;
+  dragArmed = false;
+  // Keeps drag tracking working once the finger visually moves off
+  // #board and over the Assigned Task tiles above it. Wrapped because
+  // a thrown exception here (e.g. no genuinely active pointer behind
+  // this id) would otherwise abort the rest of this handler and take
+  // the long-press timer down with it — the same failure mode as the
+  // dead #btn-par listener earlier in Phase 8. Capture is a nice-to-
+  // have for the drag; it isn't worth breaking tap and long-press over.
+  try { tile.setPointerCapture(e.pointerId); } catch (err) { /* not fatal */ }
   clearTimeout(boardLongPressTimer);
   boardLongPressTimer = setTimeout(() => {
     boardSuppressClick = true;
     openUnitRecountSheet(boardLongPressUnit);
   }, 550);
 });
-['pointerup', 'pointercancel', 'pointerleave'].forEach(evt =>
-  $('board').addEventListener(evt, () => clearTimeout(boardLongPressTimer))
-);
 $('board').addEventListener('pointermove', e => {
   if (!boardPressStart) return;
   if (Math.hypot(e.clientX - boardPressStart.x, e.clientY - boardPressStart.y) > 10) {
     clearTimeout(boardLongPressTimer);
+    if (!dragArmed) {
+      dragArmed = true;
+      boardSuppressClick = true;
+      dragUnit = boardLongPressUnit;
+      startDragGhost(dragUnit, e.clientX, e.clientY);
+    }
+  }
+  if (dragArmed) {
+    moveDragGhost(e.clientX, e.clientY);
+    updateDragHover(e.clientX, e.clientY);
   }
 });
+['pointerup', 'pointercancel'].forEach(evt =>
+  $('board').addEventListener(evt, e => {
+    clearTimeout(boardLongPressTimer);
+    if (dragArmed) endDrag(evt === 'pointerup');
+    boardPressStart = null;
+  })
+);
 $('board').addEventListener('click', e => {
   if (boardSuppressClick) { boardSuppressClick = false; return; }
   const tile = e.target.closest('[data-unit]');
   if (!tile) return;
   openAssignSheet(tile.dataset.unit);
 });
+
+/* ---------- drag a unit onto an Assigned Task tile ---------- */
+/* Native HTML5 drag-and-drop doesn't work reliably on touch, so this
+   is hand-rolled from pointer events: a floating "ghost" follows the
+   finger, elementFromPoint() (not e.target — pointer capture makes
+   e.target always the tile that started the drag, not whatever's
+   visually underneath) finds the tile actually under it, and dropping
+   over a valid task tile logs the same 'assign' entry the tap-to-
+   assign sheet would. */
+let dragUnit = null;
+let dragArmed = false;
+let dragGhost = null;
+let dragHoverTile = null;
+
+function startDragGhost(name, x, y){
+  dragGhost = document.createElement('div');
+  dragGhost.className = 'drag-ghost';
+  dragGhost.textContent = unitAbbrev(name);
+  document.body.appendChild(dragGhost);
+  moveDragGhost(x, y);
+}
+function moveDragGhost(x, y){
+  if (!dragGhost) return;
+  dragGhost.style.left = x + 'px';
+  dragGhost.style.top = y + 'px';
+}
+function updateDragHover(x, y){
+  const el = document.elementFromPoint(x, y);
+  const tile = el ? el.closest('[data-task]') : null;
+  if (dragHoverTile && dragHoverTile !== tile) dragHoverTile.classList.remove('drag-over');
+  if (tile) tile.classList.add('drag-over');
+  dragHoverTile = tile;
+}
+function endDrag(commit){
+  if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+  if (dragHoverTile) dragHoverTile.classList.remove('drag-over');
+  if (commit && dragHoverTile && dragUnit && state) {
+    appendEntry(state, { t: Date.now(), kind: 'assign', unit: dragUnit, to: dragHoverTile.dataset.task });
+    render();
+  }
+  dragHoverTile = null;
+  dragUnit = null;
+  dragArmed = false;
+}
 
 /* ---------- add unit ---------- */
 /* Small square tiles, grouped and sorted numerically within each
@@ -1134,6 +1231,7 @@ function render(){
     $('board').innerHTML = '';
     $('resources').innerHTML = '';
     $('checklist').innerHTML = '';
+    $('task-row').innerHTML = '';
     $('par-suggestion').innerHTML = '';
     $('export-text').value = '';
     $('save-warning').innerHTML = '';
@@ -1156,6 +1254,7 @@ function render(){
   renderBoard();
   renderResources();
   renderChecklist();
+  renderTaskRow();
   renderParSuggestion();
   renderExport();
   renderUndo();
