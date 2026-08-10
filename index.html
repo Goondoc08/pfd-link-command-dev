@@ -189,6 +189,24 @@
   @media(min-width:480px){.tiles{grid-template-columns:repeat(5,1fr)}}
   @media(min-width:680px){.tiles{grid-template-columns:repeat(6,1fr)}}
 
+  /* ---------- desktop / MDT ----------
+     #out's category sections reflow into two browser-balanced columns;
+     header/search/calendar deliberately stay narrow and centered — they're
+     controls, not content, and stretching a search box or a 7-day grid to
+     1400px would look broken rather than "desktop." */
+  @media(min-width:1200px){
+    .wrap{max-width:1400px}
+    #out{column-count:2;column-gap:28px}
+    .sec{break-inside:avoid}
+    .tiles{grid-template-columns:repeat(7,1fr)}
+    .hdr-in{max-width:820px;margin:0 auto}
+    #cal{max-width:600px;margin:0 auto 9px}
+  }
+  @media(min-width:1600px){
+    .wrap{max-width:1600px}
+    .tiles{grid-template-columns:repeat(8,1fr)}
+  }
+
   .tilewrap{position:relative}
   .star{
     position:absolute;right:1px;top:1px;z-index:2;
