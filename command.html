@@ -225,9 +225,14 @@
            font-weight:700;margin:14px 0 6px}
   .poshead:first-child{margin-top:0}
   .unitrow{display:flex;flex-wrap:wrap;gap:8px}
+  /* touch-action:none is load-bearing for the drag gesture in
+     command.js — without it, the browser claims a finger-drag on the
+     tile for native page scrolling before pointermove ever reports
+     enough movement to arm the drag, so only the long-press timer
+     (which doesn't depend on movement) ever seems to fire. */
   .unittile{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
             padding:10px 13px;color:var(--txt);font-family:inherit;font-weight:700;
-            font-size:14.5px;cursor:pointer;min-height:48px}
+            font-size:14.5px;cursor:pointer;min-height:48px;touch-action:none}
   .unittile:active{background:var(--line)}
   .unittile .pc{color:var(--dim);font-weight:600;font-size:13px;margin-left:4px}
   .board-empty{color:var(--faint);font-size:14px}
