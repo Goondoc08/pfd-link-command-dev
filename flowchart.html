@@ -118,6 +118,14 @@
             border-radius:20px;background:#fff}
   }
 
+  /* ---------- desktop / MDT: this page IS already a multi-column
+     diagram (the .flow grid) — no restructuring needed, just let the
+     fr-track boxes breathe a bit wider. Gutters stay fixed at 62px. ---------- */
+  @media (min-width:1200px){
+    .sheet{max-width:1300px}
+    .src{max-width:1300px}
+  }
+
   @media print{
     body{background:#fff} .bar,.src{display:none}
     .sheet{margin:0;max-width:none;border-radius:0;padding:0}

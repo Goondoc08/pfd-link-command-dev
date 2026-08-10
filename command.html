@@ -328,6 +328,30 @@
   .undo-caption:empty{margin:0}
 
   footer{margin-top:30px;font-size:11.5px;color:var(--faint);text-align:center;line-height:1.6}
+
+  /* ---------- desktop / MDT ----------
+     command.js populates these sections by ID only — it has no idea
+     where they sit visually, so this reflow is pure CSS, no JS change.
+     Left = active-management workflow (chips through Units, kept
+     together on purpose so the Assigned Task <-> Units drag gesture
+     stays inside one column). Right = persistent log/status rail
+     (resources, notes, timeline, export) visible without scrolling
+     past the whole left side. #save-warning and End Incident stay
+     full-width outside the grid — a storage warning or the destructive
+     end-incident action shouldn't be able to get buried in one column. */
+  @media (min-width:1200px){
+    .wrap{max-width:1300px}
+    .bar-in{max-width:900px;margin:0 auto}
+    #start-screen{max-width:520px;margin:0 auto}
+    #active-screen{
+      display:grid;grid-template-columns:1fr 420px;
+      grid-template-areas:"left right";column-gap:28px;
+    }
+    .ccol-left{grid-area:left}
+    .ccol-right{grid-area:right}
+    #save-warning:not(:empty){grid-column:1/-1}
+    #active-screen > .btnrow{grid-column:1/-1}
+  }
 </style>
 </head>
 <body>
@@ -392,58 +416,62 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
   <div id="active-screen" hidden>
     <div id="save-warning"></div>
 
-    <div class="rolesrow" id="topchips-row"></div>
+    <div class="ccol ccol-left">
+      <div class="rolesrow" id="topchips-row"></div>
 
-    <div class="par-row">
-      <div id="par-banner"></div>
-      <div id="par-suggestion"></div>
-    </div>
+      <div class="par-row">
+        <div id="par-banner"></div>
+        <div id="par-suggestion"></div>
+      </div>
 
-    <h2>Next Considerations</h2>
-    <div class="card">
-      <div class="ck" id="checklist"></div>
-    </div>
+      <h2>Next Considerations</h2>
+      <div class="card">
+        <div class="ck" id="checklist"></div>
+      </div>
 
-    <h2>Assigned Task</h2>
-    <div class="card">
-      <div class="task-row" id="task-row"></div>
-    </div>
+      <h2>Assigned Task</h2>
+      <div class="card">
+        <div class="task-row" id="task-row"></div>
+      </div>
 
-    <h2>Units</h2>
-    <div class="card">
-      <div id="board"></div>
-      <div class="btnrow">
-        <button class="primary" id="btn-add-unit">+ Unit</button>
+      <h2>Units</h2>
+      <div class="card">
+        <div id="board"></div>
+        <div class="btnrow">
+          <button class="primary" id="btn-add-unit">+ Unit</button>
+        </div>
       </div>
     </div>
 
-    <div id="resources"></div>
+    <div class="ccol ccol-right">
+      <div id="resources"></div>
 
-    <h2>Note</h2>
-    <div class="card">
-      <div class="noterow">
-        <input type="text" id="f-note" placeholder="What happened" autocomplete="off">
-        <button id="btn-note">Add</button>
+      <h2>Note</h2>
+      <div class="card">
+        <div class="noterow">
+          <input type="text" id="f-note" placeholder="What happened" autocomplete="off">
+          <button id="btn-note">Add</button>
+        </div>
       </div>
-    </div>
 
-    <div class="tlhead">
-      <h2 style="margin:22px 0 0">Timeline</h2>
-      <button type="button" id="btn-undo" class="undo" hidden>Undo</button>
-    </div>
-    <div id="undo-caption" class="undo-caption"></div>
-    <div class="card">
-      <ul class="tl" id="timeline"></ul>
-    </div>
-
-    <h2>Export</h2>
-    <div class="card">
-      <textarea id="export-text" readonly rows="8"></textarea>
-      <div class="btnrow">
-        <button id="btn-copy">Copy</button>
-        <button id="btn-share" hidden>Share</button>
+      <div class="tlhead">
+        <h2 style="margin:22px 0 0">Timeline</h2>
+        <button type="button" id="btn-undo" class="undo" hidden>Undo</button>
       </div>
-      <div id="export-status" class="export-status"></div>
+      <div id="undo-caption" class="undo-caption"></div>
+      <div class="card">
+        <ul class="tl" id="timeline"></ul>
+      </div>
+
+      <h2>Export</h2>
+      <div class="card">
+        <textarea id="export-text" readonly rows="8"></textarea>
+        <div class="btnrow">
+          <button id="btn-copy">Copy</button>
+          <button id="btn-share" hidden>Share</button>
+        </div>
+        <div id="export-status" class="export-status"></div>
+      </div>
     </div>
 
     <div class="btnrow">

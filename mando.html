@@ -80,6 +80,15 @@
   .note b{color:var(--txt)}
   .empty{color:var(--faint);text-align:center;padding:26px 0;font-size:14px}
   footer{margin-top:28px;font-size:11.5px;color:var(--faint);text-align:center;line-height:1.6}
+
+  /* ---------- desktop / MDT ----------
+     picker+hero (compact, top-loaded) on the left, the longer-running
+     Upcoming list on the right. footer spans both, unwrapped. */
+  @media(min-width:1200px){
+    .wrap{max-width:1100px}
+    .wrap{display:grid;grid-template-columns:380px 1fr;gap:28px;align-items:start}
+    .wrap > footer{grid-column:1/-1}
+  }
 </style>
 </head>
 <body>
@@ -91,26 +100,34 @@
 
 <div class="wrap">
 
-  <h2>Your group</h2>
-  <div class="card">
-    <div class="shifts" id="shifts"></div>
-    <div class="nums"   id="nums"></div>
+  <div class="mcol mcol-left">
+    <h2>Your group</h2>
+    <div class="card">
+      <div class="shifts" id="shifts"></div>
+      <div class="nums"   id="nums"></div>
+    </div>
+
+    <div class="card hero" id="hero" style="display:none">
+      <div class="lbl">Your next mando</div>
+      <div class="when"  id="h-when"></div>
+      <div class="dates" id="h-dates"></div>
+      <div class="sub"   id="h-sub"></div>
+      <div class="pillrow" id="h-pills"></div>
+    </div>
+
+    <!-- Source position doesn't matter: render() always sets this to the
+         exact opposite display of hero/up-h/up-card (see the `ready`
+         branch below), so moving it here from after #up-card is purely
+         cosmetic grouping, not a behavior change. -->
+    <div class="note" id="intro">
+      Pick your station/shift group above. Mando runs on the middle two of your four days
+      off, every 36 days, with a longer break every seventh turn.
+    </div>
   </div>
 
-  <div class="card hero" id="hero" style="display:none">
-    <div class="lbl">Your next mando</div>
-    <div class="when"  id="h-when"></div>
-    <div class="dates" id="h-dates"></div>
-    <div class="sub"   id="h-sub"></div>
-    <div class="pillrow" id="h-pills"></div>
-  </div>
-
-  <h2 id="up-h" style="display:none">Upcoming</h2>
-  <div class="card" id="up-card" style="display:none"><ul class="up" id="up"></ul></div>
-
-  <div class="note" id="intro">
-    Pick your station/shift group above. Mando runs on the middle two of your four days
-    off, every 36 days, with a longer break every seventh turn.
+  <div class="mcol mcol-right">
+    <h2 id="up-h" style="display:none">Upcoming</h2>
+    <div class="card" id="up-card" style="display:none"><ul class="up" id="up"></ul></div>
   </div>
 
   <footer>Reference copy of the department mando worksheet.</footer>

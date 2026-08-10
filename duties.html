@@ -65,6 +65,16 @@
         border-radius:12px;padding:12px 14px;margin-top:12px;line-height:1.55}
   .note b{color:var(--txt)}
   footer{margin-top:30px;font-size:11.5px;color:var(--faint);text-align:center;line-height:1.6}
+
+  /* ---------- desktop / MDT ----------
+     "what's true today" (Today + Tour Tasks + notes) and "look up any
+     day" (weekly picker + detail) are independent modules already —
+     side by side instead of stacked. footer spans both, unwrapped. */
+  @media(min-width:1200px){
+    .wrap{max-width:1200px}
+    .wrap{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+    .wrap > footer{grid-column:1/-1}
+  }
 </style>
 </head>
 <body>
@@ -76,43 +86,47 @@
 
 <div class="wrap">
 
-  <div class="card today" id="today">
-    <div class="lbl">Today</div>
-    <div class="nm" id="t-day">—</div>
-    <div class="sub" id="t-shift"></div>
-    <div class="det" id="t-detail"></div>
-    <div id="t-flag"></div>
+  <div class="dcol dcol-left">
+    <div class="card today" id="today">
+      <div class="lbl">Today</div>
+      <div class="nm" id="t-day">—</div>
+      <div class="sub" id="t-shift"></div>
+      <div class="det" id="t-detail"></div>
+      <div id="t-flag"></div>
+    </div>
+
+    <h2>Tour Tasks — every day</h2>
+    <div class="card">
+      <ul class="ck">
+        <li><i class="bx"></i><span>Blow bays out</span></li>
+        <li><i class="bx"></i><span>Keep dorm rooms neat and presentable with beds made</span></li>
+        <li><i class="bx"></i><span>Clean kitchen, wash and put away dishes</span></li>
+        <li><i class="bx"></i><span>Start laundry and fold towels</span></li>
+        <li><i class="bx"></i><span>Take out all trash, inside and bays</span></li>
+        <li><i class="bx"></i><span>Vacuum door mats and entry ways</span></li>
+        <li><i class="bx"></i><span>Sweep and mop floors</span></li>
+      </ul>
+    </div>
+
+    <div class="note">
+      All staff split the assigned tasks daily as instructed by the Officer. It is the
+      responsibility of the crews to establish an action plan to ensure all tasks are completed.
+    </div>
+    <div class="note">
+      <b>All apparatus in each station should be checked on the first day of each tour</b>
+      to ensure readiness, and documented appropriately.
+    </div>
   </div>
 
-  <h2>Tour Tasks — every day</h2>
-  <div class="card">
-    <ul class="ck">
-      <li><i class="bx"></i><span>Blow bays out</span></li>
-      <li><i class="bx"></i><span>Keep dorm rooms neat and presentable with beds made</span></li>
-      <li><i class="bx"></i><span>Clean kitchen, wash and put away dishes</span></li>
-      <li><i class="bx"></i><span>Start laundry and fold towels</span></li>
-      <li><i class="bx"></i><span>Take out all trash, inside and bays</span></li>
-      <li><i class="bx"></i><span>Vacuum door mats and entry ways</span></li>
-      <li><i class="bx"></i><span>Sweep and mop floors</span></li>
-    </ul>
-  </div>
-
-  <div class="note">
-    All staff split the assigned tasks daily as instructed by the Officer. It is the
-    responsibility of the crews to establish an action plan to ensure all tasks are completed.
-  </div>
-  <div class="note">
-    <b>All apparatus in each station should be checked on the first day of each tour</b>
-    to ensure readiness, and documented appropriately.
-  </div>
-
-  <h2>Weekly duties</h2>
-  <div class="days" id="days"></div>
-  <div class="card">
-    <div class="dayname" id="d-name"></div>
-    <div class="daysub"  id="d-title"></div>
-    <div class="daybody" id="d-body"></div>
-    <div id="d-extra"></div>
+  <div class="dcol dcol-right">
+    <h2>Weekly duties</h2>
+    <div class="days" id="days"></div>
+    <div class="card">
+      <div class="dayname" id="d-name"></div>
+      <div class="daysub"  id="d-title"></div>
+      <div class="daybody" id="d-body"></div>
+      <div id="d-extra"></div>
+    </div>
   </div>
 
   <footer>Reference copy of the station duty sheet.</footer>
