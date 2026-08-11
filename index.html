@@ -240,15 +240,28 @@
 
     .hdr-in{
       max-width:1500px;margin:0 auto;
-      display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:24px;
+      display:flex;align-items:center;column-gap:16px;
     }
-    /* #shiftbar is display:none below, so it never occupies a grid cell —
-       .brand (title + Command/info) and .search are the only two cells,
-       same row, instead of three stacked rows. That's what actually buys
-       back the vertical space, not just widening things. */
-    .brand{margin-bottom:0}
+    /* .brand's own box disappears (display:contents) so its children —
+       the logo, title, Command button, info button — become direct
+       flex items of .hdr-in instead, sitting alongside .search (which
+       stays exactly where it already is in the DOM, a later sibling of
+       .brand, so mobile's stacking order is untouched below this
+       breakpoint). `order` then sequences all five into one row: logo,
+       title, search, Command, info — Command/info moved to the right
+       of search per Aug 12 feedback, previously grouped with the title. */
+    .brand{display:contents}
+    .brandmark{order:1}
+    .brand h1{order:2}
+    .search{order:3;flex:1;max-width:420px;margin-left:0}
+    /* search's flex:1 stops growing at its own max-width — the leftover
+       row space beyond that wasn't going anywhere, leaving Command/info
+       stranded right after search with a dead gap to the true right
+       edge. cmdbtn's own auto margin picks up whatever's left once
+       search caps out, so the pair still lands flush right. */
+    .cmdbtn{order:4;margin-left:auto}
+    .infobtn{order:5;margin-left:0}
     #shiftbar{display:none}
-    .search{max-width:420px;margin-left:auto}
 
     #cal{display:block !important;margin-bottom:14px}
 
