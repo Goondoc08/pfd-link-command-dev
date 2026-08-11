@@ -144,19 +144,19 @@ function describeEntry(e){
     case 'par':
       return 'PAR complete' + (e.reason ? ' — ' + e.reason : '');
     case 'unit-arrive':
-      return e.unit + ' (' + e.personnel + ') on scene';
+      return unitAbbrev(e.unit) + ' (' + e.personnel + ') on scene';
     case 'unit-split':
-      return e.unit + ' split — ' + e.into
+      return unitAbbrev(e.unit) + ' split — ' + e.into
         .map(h => h.name + ' (' + h.personnel + ')')
         .join(', ');
     case 'unit-merge':
-      return e.unit + ' — crew merged back together';
+      return unitAbbrev(e.unit) + ' — crew merged back together';
     case 'assign':
-      return e.unit + ' → ' + e.to;
+      return unitAbbrev(e.unit) + ' → ' + e.to;
     case 'unit-recount':
-      return e.unit + ' personnel adjusted to ' + e.personnel;
+      return unitAbbrev(e.unit) + ' personnel adjusted to ' + e.personnel;
     case 'unit-clear':
-      return e.unit + ' cleared from board';
+      return unitAbbrev(e.unit) + ' cleared from board';
     case 'role':
       return roleLabel(e.role) + ': ' + e.who;
     case 'resource':
@@ -280,6 +280,13 @@ function defaultCrewFor(name){
    — one source of truth, and it stays correct automatically if roster.js
    changes. Used for the small square tiles in the Add Unit sheet. */
 function unitAbbrev(name){
+  // Tower gets a two-letter prefix (TW) instead of the generic
+  // first-letter rule below — "T8" read as "Truck 8" on the board,
+  // which isn't a unit this department runs.
+  if (/^Tower\s/.test(name)) {
+    const m = name.match(/^Tower\s+(\d+)/);
+    return m ? ('TW' + m[1]) : name;
+  }
   const m = name.match(/^(\S)\S*\s+(\d+)/);
   return m ? (m[1].toUpperCase() + m[2]) : name;
 }
@@ -576,7 +583,7 @@ function openModeSheet(){
 function openRoleSheet(role){
   const { units } = deriveBoard(state.log);
   const unitOpts = Object.keys(units).map(u =>
-    `<button type="button" class="sheet-opt" data-opt="role-pick" data-value="${escapeHTML(u)}">${escapeHTML(u)}</button>`
+    `<button type="button" class="sheet-opt" data-opt="role-pick" data-value="${escapeHTML(u)}">${escapeHTML(unitAbbrev(u))}</button>`
   ).join('') || '<div class="board-empty">No units on the board yet.</div>';
   sheetCtx = { type: 'role', role };
   openSheet(roleLabel(role), `
@@ -641,7 +648,7 @@ function renderBoard(){
     <div class="poshead">${escapeHTML(pos)}</div>
     <div class="unitrow">
       ${byPos[pos].map(n =>
-        `<button type="button" class="unittile" data-unit="${escapeHTML(n)}">${escapeHTML(n)}<span class="pc">(${units[n].personnel})</span></button>`
+        `<button type="button" class="unittile" data-unit="${escapeHTML(n)}">${escapeHTML(unitAbbrev(n))}<span class="pc">(${units[n].personnel})</span></button>`
       ).join('')}
     </div>
   `).join('');
@@ -661,7 +668,7 @@ function openAssignSheet(unitName, suggestion){
     extra += `<button type="button" class="sheet-opt" data-opt="split">Split Crew — Low / Hi</button>`;
   }
   if (canUnsplit) {
-    extra += `<button type="button" class="sheet-opt" data-opt="unsplit">Unsplit — merge back to ${escapeHTML(u.splitOf)}</button>`;
+    extra += `<button type="button" class="sheet-opt" data-opt="unsplit">Unsplit — merge back to ${escapeHTML(unitAbbrev(u.splitOf))}</button>`;
   }
 
   // A suggestion only ever appears once, at the moment a unit is added
@@ -683,7 +690,7 @@ function openAssignSheet(unitName, suggestion){
     ).join('')}
   `).join('');
 
-  openSheet(unitName + ' (' + u.personnel + ')', `
+  openSheet(unitAbbrev(unitName) + ' (' + u.personnel + ')', `
     ${suggestBlock}
     ${extra}
     ${groups}
@@ -693,7 +700,7 @@ function openAssignSheet(unitName, suggestion){
       <button type="button" id="sheet-assign-free-go">Assign</button>
     </div>
     <button type="button" class="sheet-opt destructive" data-opt="clear-unit" style="margin-top:14px">
-      Clear ${escapeHTML(unitName)} from board
+      Clear ${escapeHTML(unitAbbrev(unitName))} from board
     </button>
   `);
 }
@@ -1200,7 +1207,7 @@ function exportText(){
       } else {
         names.forEach(n => {
           const u = snap.units[n];
-          lines.push('    ' + n + '  (' + u.personnel + ')  ' + u.position);
+          lines.push('    ' + unitAbbrev(n) + '  (' + u.personnel + ')  ' + u.position);
         });
       }
     }
