@@ -191,18 +191,18 @@
 
   /* ---------- desktop / MDT ----------
      A real dashboard rather than a widened single column: left rail is
-     always-open calendar + two teaser cards (next mando, today's
-     station chore — each links through to the page with full detail),
-     right side is the Links directory. No separate "today's date/
-     shift" card — the always-open calendar already shows that (and
-     used to duplicate with the chore card's own subtitle, per Aug 11
-     feedback), so it isn't repeated a third time here. These cards are
-     new elements (#dsk-mando/#dsk-chore), hidden below the breakpoint
-     — hidden by default, not just unstyled, since unlike duties.html/
-     mando.html's column split this is genuinely new content, not a
-     reflow of what mobile already shows (mobile has its own header
-     shift bar + the Duties/Mando tiles in the grid for that). */
-  #dsk-mando, #dsk-chore{display:none}
+     the shift-of-the-day card + two teaser cards (next mando, this
+     tour's station duties — each links through to the page with full
+     detail) + an always-open calendar; right side is the Links
+     directory. Today card is a second instance of the header's own
+     .shiftbar (same look — big colored shift letter is what firefighters
+     actually scan for, per Aug 11 feedback) so it's hidden below the
+     breakpoint rather than removed from the header. #dsk-mando/
+     #dsk-chore are genuinely new content (mobile has its own header
+     shift bar + the Duties/Mando tiles in the grid for those), so
+     they're hidden by default too, not just unstyled. */
+  #dsk-today, #dsk-mando, #dsk-chore{display:none}
+  .shiftbar-static{cursor:default}
 
   /* index.html has no shared .card class (unlike duties/mando/command) —
      it boxes things via .calbox/.shiftbar's own styling instead, so
@@ -215,17 +215,19 @@
   .mnext .lbl{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);font-weight:700}
   .mnext .mnext-body{font-size:14.5px;margin-top:4px;color:var(--txt);line-height:1.5}
 
-  /* Chore card: bold day-of-week like duties.html's Today card, but
-     shift-colored (.sA/.sB/.sC, already defined above for .shiftbar)
-     instead of a fixed color, per Aug 11 feedback. Kept deliberately
-     spare — title only, no body text; duties.html has the rest. */
+  /* Tour Duties card: both calendar days of the current 48hr tour,
+     not just today — a tour that starts Wednesday reads "Cycle Count,
+     Office / Dorms and Apparatus Day — Secondary and Reserve" in one
+     line (see renderTourDuties). Shift-colored like .shiftbar, per
+     Aug 11 feedback; day range in duties.html's bold-day-of-week style. */
   .chore{
     background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--dim);
     border-radius:10px;padding:10px 12px;display:block;color:inherit;text-decoration:none;
   }
-  .chore .chore-day{font-size:19px;font-weight:800}
+  .chore .lbl{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .chore .chore-day{font-size:19px;font-weight:800;margin-top:2px}
   .chore.sA .chore-day{color:var(--a)} .chore.sB .chore-day{color:var(--b)} .chore.sC .chore-day{color:var(--c)}
-  .chore .chore-title{font-size:14.5px;color:var(--txt);margin-top:6px}
+  .chore .chore-title{font-size:14.5px;color:var(--txt);margin-top:6px;line-height:1.4}
 
   @media(min-width:1200px){
     .wrap{
@@ -236,29 +238,40 @@
     .icol-right{grid-column:2}
     .wrap > footer{grid-column:1/-1}
 
-    .hdr-in{max-width:1500px;margin:0 auto}
+    .hdr-in{
+      max-width:1500px;margin:0 auto;
+      display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:24px;
+    }
+    /* #shiftbar is display:none below, so it never occupies a grid cell —
+       .brand (title + Command/info) and .search are the only two cells,
+       same row, instead of three stacked rows. That's what actually buys
+       back the vertical space, not just widening things. */
+    .brand{margin-bottom:0}
     #shiftbar{display:none}
-    .search{max-width:520px}
-    /* .cmdbtn and .infobtn both carry margin-left:auto on mobile, which
-       splits the row's leftover space into two equal shares — one
-       before each button — landing cmdbtn CENTERED in the gap and
-       infobtn at the edge (see the comment on .cmdbtn above). On this
-       much wider row that reads as "adrift in the middle," not "top
-       right" like the sketch. Zeroing infobtn's share leaves cmdbtn's
-       auto margin as the only one left, so it claims the whole gap and
-       the two buttons land flush together at the right edge. */
-    .infobtn{margin-left:0}
+    .search{max-width:420px;margin-left:auto}
 
     #cal{display:block !important;margin-bottom:14px}
 
-    #dsk-mando, #dsk-chore{display:block;margin-bottom:14px}
+    #dsk-today, #dsk-mando, #dsk-chore{display:block;margin-bottom:14px}
 
-    .tiles{grid-template-columns:repeat(5,1fr)}
+    /* Right column is roughly half the old full-page width now, so
+       "come down a lot" from the earlier 5/6-col pass means fewer px
+       per tile even at a higher column count — smaller tiles, bigger
+       label text (25% up from the 12px mobile base) so they stay
+       readable at a glance from across the room. */
+    .tiles{grid-template-columns:repeat(8,1fr)}
+    /* .icol-right prefix (not just .tile .nm) is load-bearing — the base
+       .tile .nm{font-size:12px} rule sits later in this file (in the
+       shared tile styles, unconditional), and at equal specificity
+       source order would win over this media query, silently losing
+       the override. Higher specificity here beats that regardless of
+       which rule comes first. */
+    .icol-right .tile .nm{font-size:15px}
   }
   @media(min-width:1600px){
     .wrap{max-width:1700px}
     .hdr-in{max-width:1700px;margin:0 auto}
-    .tiles{grid-template-columns:repeat(6,1fr)}
+    .tiles{grid-template-columns:repeat(9,1fr)}
   }
 
   .tilewrap{position:relative}
@@ -494,13 +507,22 @@ if (sessionStorage.getItem('pfd-flip-return')) {
 
 <div class="wrap">
   <div class="icol-left">
+    <div class="shiftbar shiftbar-static" id="dsk-today">
+      <span class="lt" id="dsk-lt">–</span>
+      <span class="meta">
+        <span class="d1" id="dsk-d1"></span><br>
+        <span class="d2" id="dsk-d2"></span>
+      </span>
+    </div>
+
     <a class="mnext" id="dsk-mando" href="mando.html">
       <div class="lbl">Mando</div>
       <div class="mnext-body" id="dsk-mando-body">—</div>
     </a>
 
     <a class="chore" id="dsk-chore" href="duties.html">
-      <div class="chore-day" id="dsk-chore-day"></div>
+      <div class="lbl">Tour Duties</div>
+      <div class="chore-day" id="dsk-chore-days"></div>
       <div class="chore-title" id="dsk-chore-title"></div>
     </a>
 
@@ -672,14 +694,21 @@ const TY = now.getFullYear(), TM = now.getMonth(), TD = now.getDate();
   const d2text = `${s.letter} shift · day ${s.dayOf} of 2 · back on ` +
     back.toLocaleDateString(undefined, {weekday:'short', month:'numeric', day:'numeric'});
 
-  const bar = document.getElementById('shiftbar');
-  bar.classList.add('s' + s.letter);
-  document.getElementById('sh-lt').textContent = s.letter;
-  document.getElementById('sh-d1').textContent = d1text;
-  document.getElementById('sh-d2').textContent = d2text;
+  // Header shift bar (mobile + tablet) and the desktop-only Today card
+  // (#dsk-today) show the exact same facts — same computation, just
+  // written to two sets of elements. Firefighters want the big colored
+  // shift letter front and center on desktop too, not just mobile.
+  [['shiftbar','sh-lt','sh-d1','sh-d2'], ['dsk-today','dsk-lt','dsk-d1','dsk-d2']].forEach(
+    ([barId, ltId, d1Id, d2Id]) => {
+      document.getElementById(barId).classList.add('s' + s.letter);
+      document.getElementById(ltId).textContent = s.letter;
+      document.getElementById(d1Id).textContent = d1text;
+      document.getElementById(d2Id).textContent = d2text;
+    }
+  );
 })();
 
-/* ---------- desktop-only: Mando Next + today's chore teaser ---------- */
+/* ---------- desktop-only: Mando Next + this tour's duties ---------- */
 /* Same underlying data as mando.html/duties.html — condensed to a
    one-glance card here, full detail lives on those pages (both cards
    link through). Always rendered regardless of viewport (cheap), just
@@ -700,14 +729,34 @@ const TY = now.getFullYear(), TM = now.getMonth(), TD = now.getDate();
   body.innerHTML = `<b>${v}</b> · ${dates}`;
 })();
 
-(function renderChoreTeaser(){
+/* A tour is 2 consecutive calendar days (see shift.js) — this shows
+   BOTH days' station duties, not just today's, so it reads e.g. "Wed –
+   Thu: Cycle Count, Office / Dorms and Apparatus Day — Secondary and
+   Reserve" rather than just half the tour's chore list. */
+(function renderTourDuties(){
   if (typeof DUTIES === 'undefined') return;
-  const todayIx = now.getDay();
   const sh = shiftFor(TY, TM, TD);
+  const day1Date = new Date(TY, TM, TD - (sh.dayOf - 1));
+  const day2Date = new Date(TY, TM, TD - (sh.dayOf - 1) + 1);
+  const day1Ix = day1Date.getDay(), day2Ix = day2Date.getDay();
+
+  const items = [];
+  // Wednesdays landing on day 1 of a tour are cycle count — duties.html
+  // hardcodes this same rule for its own "today" banner rather than
+  // deriving it from DUTIES[3].extra (that field is for the weekly
+  // picker's detail view instead), so this matches that pattern.
+  if (day1Ix === 3) items.push('Cycle Count');
+  items.push(DUTIES[day1Ix].title);
+  items.push(DUTIES[day2Ix].title);
+  const joined = items.length > 1
+    ? items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1]
+    : items[0];
+
   document.getElementById('dsk-chore').classList.add('s' + sh.letter);
-  document.getElementById('dsk-chore-day').textContent =
-    now.toLocaleDateString(undefined, {weekday:'long'});
-  document.getElementById('dsk-chore-title').textContent = DUTIES[todayIx].title;
+  document.getElementById('dsk-chore-days').textContent =
+    day1Date.toLocaleDateString(undefined, {weekday:'short'}) + ' – ' +
+    day2Date.toLocaleDateString(undefined, {weekday:'short'});
+  document.getElementById('dsk-chore-title').textContent = joined;
 })();
 
 /* ---------- calendar ---------- */
