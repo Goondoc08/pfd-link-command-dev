@@ -34,6 +34,14 @@
                height:100vh;overflow:hidden}
   @keyframes pExit{from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.96)}}
   @keyframes pEnter{from{opacity:0;transform:scale(1.03)} to{opacity:1;transform:scale(1)}}
+  /* Color wash behind the fade, added Aug 12 2026 — arriving FROM
+     index.html washes warm (red/amber, matching the Command button
+     itself), leaving back TO it washes cool (green). On <html>, not
+     body's own background — see the matching note in index.html for
+     why (body's own children paint opaque backgrounds that would
+     occlude a color on body itself). */
+  html.wash-in{background:#3a1a0c}
+  html.wash-out{background:#0f2a1a}
 
   .bar{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);
        padding:calc(env(safe-area-inset-top) + 10px) 14px 10px}
@@ -355,15 +363,21 @@
 </head>
 <body>
 <script>
-// Plays on every arrival here — the only entry points are the header's
-// Command button (already mid-flip-out on index.html) or the Back link
-// below (same treatment in reverse). See the matching script in index.html.
+// Plays on every arrival here — the only entry point is index.html's
+// Command button (already mid-flip-out there). Washes warm (wash-in)
+// to match that button's own red — see the matching script down by
+// #btn-back for the reverse trip, and index.html for the wash-* notes.
 if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.documentElement.classList.add('wash-in');
   document.body.classList.add('flip-in');
   // Timer backstop in case animationend never fires — see index.html's
   // matching script for why this can't rely on the event alone.
   let cleaned = false;
-  const clean = () => { if (cleaned) return; cleaned = true; document.body.classList.remove('flip-in'); };
+  const clean = () => {
+    if (cleaned) return; cleaned = true;
+    document.body.classList.remove('flip-in');
+    document.documentElement.classList.remove('wash-in');
+  };
   document.body.addEventListener('animationend', function once(e){
     if (e.animationName === 'pEnter') { document.body.removeEventListener('animationend', once); clean(); }
   });
