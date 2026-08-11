@@ -1384,12 +1384,16 @@ $('btn-faq').addEventListener('click', () => {
   openSheet('About Command', FAQ_HTML);
 });
 
-/* ---------- back to index (screen flip) ---------- */
+/* ---------- back to index ---------- */
+/* Green wash on the way out, matching index.html's wash-out (arriving
+   there off this same sessionStorage flag) — see the wash-* notes in
+   both files' <style> blocks. */
 $('btn-back').addEventListener('click', e => {
   e.preventDefault();
   const url = e.currentTarget.href;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { location.href = url; return; }
   sessionStorage.setItem('pfd-flip-return', '1');
+  document.documentElement.classList.add('wash-out');
   document.body.classList.add('flip-out');
   // animationend won't fire if the tab is backgrounded or the compositor
   // stalls mid-tap — see index.html's matching handler for why this
@@ -1397,9 +1401,9 @@ $('btn-back').addEventListener('click', e => {
   let navigated = false;
   const go = () => { if (navigated) return; navigated = true; location.href = url; };
   document.body.addEventListener('animationend', function once(ev){
-    if (ev.animationName === 'pflipOut') { document.body.removeEventListener('animationend', once); go(); }
+    if (ev.animationName === 'pExit') { document.body.removeEventListener('animationend', once); go(); }
   });
-  setTimeout(go, 400);
+  setTimeout(go, 260);
 });
 
 /* ---------- actions ---------- */

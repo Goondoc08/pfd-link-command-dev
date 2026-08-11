@@ -70,6 +70,17 @@
                height:100vh;overflow:hidden}
   @keyframes pExit{from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.96)}}
   @keyframes pEnter{from{opacity:0;transform:scale(1.03)} to{opacity:1;transform:scale(1)}}
+  /* Color wash behind the fade, added Aug 12 2026 — going INTO Command
+     washes warm (red/amber, matching the Command button itself),
+     coming back OUT washes cool (green). Lives on <html>, not body's
+     own background: body's children (header, cards, tiles) all paint
+     their own opaque backgrounds, which would occlude a color set on
+     body itself. <html> sits fully behind the whole body element, so
+     it shows through cleanly as body's group opacity fades toward 0,
+     with no fight against child stacking. Flat color, no animation of
+     its own needed — it's already there as body fades over it. */
+  html.wash-in{background:#3a1a0c}
+  html.wash-out{background:#0f2a1a}
 
   /* ---------- header ---------- */
   header{
@@ -478,12 +489,15 @@
 </head>
 <body>
 <script>
-// Mirrors the flip-out this page plays on the way into Command, only when
-// actually returning from it — a cold load (home screen tap, bookmark)
-// should not flip. See the matching script in command.html.
+// Mirrors the flip-out command.html plays on the way back to this page —
+// only when actually returning from it, a cold load (home screen tap,
+// bookmark) should not animate. pfd-flip-return is set by command.html's
+// #btn-back handler right before it navigates here; this block reads it
+// once and clears it immediately so a manual reload doesn't replay it.
 if (sessionStorage.getItem('pfd-flip-return')) {
   sessionStorage.removeItem('pfd-flip-return');
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('wash-out');
     document.body.classList.add('flip-in');
     // flip-in also carries height:100vh;overflow:hidden for the duration
     // of the animation — if animationend never fires (backgrounded tab,
@@ -491,7 +505,11 @@ if (sessionStorage.getItem('pfd-flip-return')) {
     // is stuck unscrollable. See index.html's cmdbtn handler for the
     // same reasoning on the other side of this transition.
     let cleaned = false;
-    const clean = () => { if (cleaned) return; cleaned = true; document.body.classList.remove('flip-in'); };
+    const clean = () => {
+      if (cleaned) return; cleaned = true;
+      document.body.classList.remove('flip-in');
+      document.documentElement.classList.remove('wash-out');
+    };
     document.body.addEventListener('animationend', function once(e){
       if (e.animationName === 'pEnter') { document.body.removeEventListener('animationend', once); clean(); }
     });
@@ -1021,6 +1039,7 @@ document.getElementById('cmdbtn').addEventListener('click', e => {
   e.preventDefault();
   const url = e.currentTarget.href;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { location.href = url; return; }
+  document.documentElement.classList.add('wash-in');
   document.body.classList.add('flip-out');
   // animationend won't fire if the tab is backgrounded or the compositor
   // stalls mid-tap — a stranded IC on a locked phone is worse than a
