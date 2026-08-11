@@ -147,7 +147,7 @@ function describeEntry(e){
       return e.unit + ' (' + e.personnel + ') on scene';
     case 'unit-split':
       return e.unit + ' split — ' + e.into
-        .map(h => h.name.replace(e.unit + ' — ', '') + ' (' + h.personnel + ')')
+        .map(h => h.name + ' (' + h.personnel + ')')
         .join(', ');
     case 'unit-merge':
       return e.unit + ' — crew merged back together';
@@ -658,7 +658,7 @@ function openAssignSheet(unitName, suggestion){
 
   let extra = '';
   if (canSplit) {
-    extra += `<button type="button" class="sheet-opt" data-opt="split">Split Crew — Low Side / High Side</button>`;
+    extra += `<button type="button" class="sheet-opt" data-opt="split">Split Crew — Low / Hi</button>`;
   }
   if (canUnsplit) {
     extra += `<button type="button" class="sheet-opt" data-opt="unsplit">Unsplit — merge back to ${escapeHTML(u.splitOf)}</button>`;
@@ -802,11 +802,43 @@ function updateDragHover(x, y){
   if (tile) tile.classList.add('drag-over');
   dragHoverTile = tile;
 }
+// Task tiles that split a truck company's crew into Low/High search
+// teams on drop, instead of a plain assign. Confirmed with the user:
+// Primary Search and Secondary Search only (not Fire Attack/RIT) —
+// see the "conditional drag and drop" request.
+const AUTO_SPLIT_TASKS = ['Primary Search', 'Secondary Search'];
+
 function endDrag(commit){
   if (dragGhost) { dragGhost.remove(); dragGhost = null; }
   if (dragHoverTile) dragHoverTile.classList.remove('drag-over');
   if (commit && dragHoverTile && dragUnit && state) {
-    appendEntry(state, { t: Date.now(), kind: 'assign', unit: dragUnit, to: dragHoverTile.dataset.task });
+    const task = dragHoverTile.dataset.task;
+    const { units } = deriveBoard(state.log);
+    const u = units[dragUnit];
+    const rosterEntry = ROSTER.find(r => r.unit === dragUnit);
+    // Only a whole (not-already-split) Ladder/Tower dropped straight
+    // onto a search task auto-splits — a half dragged elsewhere just
+    // reassigns normally, and the existing "Unsplit" option in the tap
+    // sheet is the path back to one crew if that's ever wanted.
+    const autoSplit = u && !u.splitOf && rosterEntry && rosterEntry.splits &&
+      AUTO_SPLIT_TASKS.includes(task);
+    if (autoSplit) {
+      const low = Math.ceil(u.personnel / 2);
+      const high = u.personnel - low;
+      const lowName = unitAbbrev(dragUnit) + ' Low';
+      const highName = unitAbbrev(dragUnit) + ' Hi';
+      appendEntry(state, {
+        t: Date.now(), kind: 'unit-split', unit: dragUnit,
+        into: [
+          { name: lowName, personnel: low },
+          { name: highName, personnel: high }
+        ]
+      });
+      appendEntry(state, { t: Date.now(), kind: 'assign', unit: lowName, to: task });
+      appendEntry(state, { t: Date.now(), kind: 'assign', unit: highName, to: task });
+    } else {
+      appendEntry(state, { t: Date.now(), kind: 'assign', unit: dragUnit, to: task });
+    }
     render();
   }
   dragHoverTile = null;
@@ -999,8 +1031,8 @@ function handleSheetOption(opt, value){
     appendEntry(state, {
       t: Date.now(), kind: 'unit-split', unit: sheetCtx.unit,
       into: [
-        { name: sheetCtx.unit + ' — Low Side', personnel: low },
-        { name: sheetCtx.unit + ' — High Side', personnel: high }
+        { name: unitAbbrev(sheetCtx.unit) + ' Low', personnel: low },
+        { name: unitAbbrev(sheetCtx.unit) + ' Hi', personnel: high }
       ]
     });
     closeSheet(); render(); return;
