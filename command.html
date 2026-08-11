@@ -19,22 +19,21 @@
        padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}
   .wrap{max-width:760px;margin:0 auto;padding:0 14px}
 
-  /* ---------- screen flip (entry from / return to index.html) ---------- */
-  /* perspective() lives INSIDE the transform, not as a `perspective`
-     property on <html>. On an ancestor it makes position:fixed resolve
-     against that ancestor rather than the viewport, which pushed the
-     bottom sheet below the fold — the backdrop dimmed the screen but the
-     PAR / mode / assign options were parked at the bottom of the
-     document. Scoped to .flip-* so it only exists mid-animation, when no
-     sheet is open. See the matching block in index.html. */
-  body.flip-out{animation:pflipOut .34s cubic-bezier(.4,0,.2,1) forwards;
-                height:100vh;overflow:hidden;backface-visibility:hidden}
-  body.flip-in{animation:pflipIn .34s cubic-bezier(.4,0,.2,1);
-               height:100vh;overflow:hidden;backface-visibility:hidden}
-  @keyframes pflipOut{from{transform:perspective(1100px) rotateY(0)}
-                        to{transform:perspective(1100px) rotateY(-90deg)}}
-  @keyframes pflipIn{from{transform:perspective(1100px) rotateY(90deg)}
-                       to{transform:perspective(1100px) rotateY(0)}}
+  /* ---------- entry from / return to index.html ---------- */
+  /* Was a 3D rotateY() flip — replaced Aug 12 2026: at the 90-degree
+     midpoint a rotated plane is edge-on, so whatever's behind <body>
+     (near-black here) shows through for a frame, which reads as a
+     stall and made even a fast (340ms) transition feel sluggish.
+     Fade+scale has no such midpoint and reads as fast at a shorter
+     duration too. See the matching block in index.html — including
+     the note on why perspective() must never sit on an ancestor of
+     body, in case a 3D effect ever comes back. */
+  body.flip-out{animation:pExit .2s ease-out forwards;
+                height:100vh;overflow:hidden}
+  body.flip-in{animation:pEnter .22s ease-out;
+               height:100vh;overflow:hidden}
+  @keyframes pExit{from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.96)}}
+  @keyframes pEnter{from{opacity:0;transform:scale(1.03)} to{opacity:1;transform:scale(1)}}
 
   .bar{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);
        padding:calc(env(safe-area-inset-top) + 10px) 14px 10px}
@@ -366,7 +365,7 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
   let cleaned = false;
   const clean = () => { if (cleaned) return; cleaned = true; document.body.classList.remove('flip-in'); };
   document.body.addEventListener('animationend', function once(e){
-    if (e.animationName === 'pflipIn') { document.body.removeEventListener('animationend', once); clean(); }
+    if (e.animationName === 'pEnter') { document.body.removeEventListener('animationend', once); clean(); }
   });
   setTimeout(clean, 400);
 }
