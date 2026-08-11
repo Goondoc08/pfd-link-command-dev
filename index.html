@@ -280,6 +280,13 @@
        the override. Higher specificity here beats that regardless of
        which rule comes first. */
     .icol-right .tile .nm{font-size:15px}
+    /* Shorter, not a bar — same width (the touch target that actually
+       matters on the MDT's touchscreen), just less height, to cut the
+       Links section's vertical space without the clickability risk of
+       a thin row. Same .icol-right specificity trick as the font rule
+       above, same reason (base a.tile{aspect-ratio:1/.92} sits later
+       in the file). Trying 1/.65 — easy to tune from here. */
+    .icol-right a.tile{aspect-ratio:1/.65}
   }
   @media(min-width:1600px){
     .wrap{max-width:1700px}
