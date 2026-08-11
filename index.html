@@ -190,21 +190,75 @@
   @media(min-width:680px){.tiles{grid-template-columns:repeat(6,1fr)}}
 
   /* ---------- desktop / MDT ----------
-     #out's category sections reflow into two browser-balanced columns;
-     header/search/calendar deliberately stay narrow and centered — they're
-     controls, not content, and stretching a search box or a 7-day grid to
-     1400px would look broken rather than "desktop." */
+     A real dashboard rather than a widened single column: left rail is
+     always-open calendar + two teaser cards (next mando, today's
+     station chore — each links through to the page with full detail),
+     right side is the Links directory. No separate "today's date/
+     shift" card — the always-open calendar already shows that (and
+     used to duplicate with the chore card's own subtitle, per Aug 11
+     feedback), so it isn't repeated a third time here. These cards are
+     new elements (#dsk-mando/#dsk-chore), hidden below the breakpoint
+     — hidden by default, not just unstyled, since unlike duties.html/
+     mando.html's column split this is genuinely new content, not a
+     reflow of what mobile already shows (mobile has its own header
+     shift bar + the Duties/Mando tiles in the grid for that). */
+  #dsk-mando, #dsk-chore{display:none}
+
+  /* index.html has no shared .card class (unlike duties/mando/command) —
+     it boxes things via .calbox/.shiftbar's own styling instead, so
+     these two new boxes carry their own complete box treatment rather
+     than assuming one that doesn't exist here. */
+  .mnext{
+    background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--dim);
+    border-radius:10px;padding:10px 12px;display:block;color:inherit;text-decoration:none;
+  }
+  .mnext .lbl{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .mnext .mnext-body{font-size:14.5px;margin-top:4px;color:var(--txt);line-height:1.5}
+
+  /* Chore card: bold day-of-week like duties.html's Today card, but
+     shift-colored (.sA/.sB/.sC, already defined above for .shiftbar)
+     instead of a fixed color, per Aug 11 feedback. Kept deliberately
+     spare — title only, no body text; duties.html has the rest. */
+  .chore{
+    background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--dim);
+    border-radius:10px;padding:10px 12px;display:block;color:inherit;text-decoration:none;
+  }
+  .chore .chore-day{font-size:19px;font-weight:800}
+  .chore.sA .chore-day{color:var(--a)} .chore.sB .chore-day{color:var(--b)} .chore.sC .chore-day{color:var(--c)}
+  .chore .chore-title{font-size:14.5px;color:var(--txt);margin-top:6px}
+
   @media(min-width:1200px){
-    .wrap{max-width:1400px}
-    #out{column-count:2;column-gap:28px}
-    .sec{break-inside:avoid}
-    .tiles{grid-template-columns:repeat(7,1fr)}
-    .hdr-in{max-width:820px;margin:0 auto}
-    #cal{max-width:600px;margin:0 auto 9px}
+    .wrap{
+      max-width:1500px;display:grid;
+      grid-template-columns:420px 1fr;column-gap:28px;align-items:start;
+    }
+    .icol-left{grid-column:1}
+    .icol-right{grid-column:2}
+    .wrap > footer{grid-column:1/-1}
+
+    .hdr-in{max-width:1500px;margin:0 auto}
+    #shiftbar{display:none}
+    .search{max-width:520px}
+    /* .cmdbtn and .infobtn both carry margin-left:auto on mobile, which
+       splits the row's leftover space into two equal shares — one
+       before each button — landing cmdbtn CENTERED in the gap and
+       infobtn at the edge (see the comment on .cmdbtn above). On this
+       much wider row that reads as "adrift in the middle," not "top
+       right" like the sketch. Zeroing infobtn's share leaves cmdbtn's
+       auto margin as the only one left, so it claims the whole gap and
+       the two buttons land flush together at the right edge. */
+    .infobtn{margin-left:0}
+
+    #cal{display:block !important;margin-bottom:14px}
+
+    #dsk-mando, #dsk-chore{display:block;margin-bottom:14px}
+
+    .tiles{grid-template-columns:repeat(5,1fr)}
   }
   @media(min-width:1600px){
-    .wrap{max-width:1600px}
-    .tiles{grid-template-columns:repeat(8,1fr)}
+    .wrap{max-width:1700px}
+    .hdr-in{max-width:1700px;margin:0 auto}
+    .tiles{grid-template-columns:repeat(6,1fr)}
   }
 
   .tilewrap{position:relative}
@@ -439,25 +493,37 @@ if (sessionStorage.getItem('pfd-flip-return')) {
 </header>
 
 <div class="wrap">
-  <div id="cal">
-    <div class="calbox">
-      <div class="calnav">
-        <button id="prev" aria-label="Previous month">‹</button>
-        <div class="mo" id="molabel"></div>
-        <button id="next" aria-label="Next month">›</button>
-      </div>
-      <div class="grid7" id="dows"></div>
-      <div class="grid7" id="days"></div>
-      <div class="callegend">
-        <span><i style="background:var(--a)"></i>A</span>
-        <span><i style="background:var(--b)"></i>B</span>
-        <span><i style="background:var(--c)"></i>C</span>
-        <span style="color:var(--faint)">tag = mando group · <b style="color:#f0c063">amber</b> = yours</span>
+  <div class="icol-left">
+    <a class="mnext" id="dsk-mando" href="mando.html">
+      <div class="lbl">Mando</div>
+      <div class="mnext-body" id="dsk-mando-body">—</div>
+    </a>
+
+    <a class="chore" id="dsk-chore" href="duties.html">
+      <div class="chore-day" id="dsk-chore-day"></div>
+      <div class="chore-title" id="dsk-chore-title"></div>
+    </a>
+
+    <div id="cal">
+      <div class="calbox">
+        <div class="calnav">
+          <button id="prev" aria-label="Previous month">‹</button>
+          <div class="mo" id="molabel"></div>
+          <button id="next" aria-label="Next month">›</button>
+        </div>
+        <div class="grid7" id="dows"></div>
+        <div class="grid7" id="days"></div>
+        <div class="callegend">
+          <span><i style="background:var(--a)"></i>A</span>
+          <span><i style="background:var(--b)"></i>B</span>
+          <span><i style="background:var(--c)"></i>C</span>
+          <span style="color:var(--faint)">tag = mando group · <b style="color:#f0c063">amber</b> = yours</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <main id="out"></main>
+  <main class="icol-right" id="out"></main>
 
   <footer>
     <div class="disc">
@@ -584,6 +650,7 @@ if (sessionStorage.getItem('pfd-flip-return')) {
 
 <script src="shift.js"></script>
 <script src="mando.js"></script>
+<script src="duties.js"></script>
 <script src="links.js"></script>
 <script>
 /* ---------- header shift bar ---------- */
@@ -591,11 +658,7 @@ const now = new Date();
 const TY = now.getFullYear(), TM = now.getMonth(), TD = now.getDate();
 (function renderShiftBar(){
   const s = shiftFor(TY, TM, TD);
-  const bar = document.getElementById('shiftbar');
-  bar.classList.add('s' + s.letter);
-  document.getElementById('sh-lt').textContent = s.letter;
-  document.getElementById('sh-d1').textContent =
-    now.toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'});
+  const d1text = now.toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'});
 
   // find the next day this platoon comes back on
   let off = 1;
@@ -606,9 +669,45 @@ const TY = now.getFullYear(), TM = now.getMonth(), TD = now.getDate();
     off++;
   }
   const back = new Date(TY, TM, TD + off);
-  document.getElementById('sh-d2').textContent =
-    `${s.letter} shift · day ${s.dayOf} of 2 · back on ` +
+  const d2text = `${s.letter} shift · day ${s.dayOf} of 2 · back on ` +
     back.toLocaleDateString(undefined, {weekday:'short', month:'numeric', day:'numeric'});
+
+  const bar = document.getElementById('shiftbar');
+  bar.classList.add('s' + s.letter);
+  document.getElementById('sh-lt').textContent = s.letter;
+  document.getElementById('sh-d1').textContent = d1text;
+  document.getElementById('sh-d2').textContent = d2text;
+})();
+
+/* ---------- desktop-only: Mando Next + today's chore teaser ---------- */
+/* Same underlying data as mando.html/duties.html — condensed to a
+   one-glance card here, full detail lives on those pages (both cards
+   link through). Always rendered regardless of viewport (cheap), just
+   hidden below 1200px by CSS. */
+(function renderMandoNext(){
+  const body = document.getElementById('dsk-mando-body');
+  const v = localStorage.getItem('pfd-mando-group');
+  if (!v || !/^[ABC][1-7]$/.test(v) || typeof mandoSessions !== 'function') {
+    body.textContent = 'Set your group to see your next date.';
+    return;
+  }
+  const s = mandoSessions(v[0], +v[1], mandoToday(), 1)[0];
+  if (!s) { body.textContent = 'Nothing scheduled.'; return; }
+  const f = (ms, o) => new Date(ms).toLocaleDateString(undefined, Object.assign({timeZone:'UTC'}, o));
+  const sameMonth = new Date(s.day1).getUTCMonth() === new Date(s.day2).getUTCMonth();
+  const dates = f(s.day1, {month:'short', day:'numeric'}) + '–'
+              + f(s.day2, sameMonth ? {day:'numeric'} : {month:'short', day:'numeric'});
+  body.innerHTML = `<b>${v}</b> · ${dates}`;
+})();
+
+(function renderChoreTeaser(){
+  if (typeof DUTIES === 'undefined') return;
+  const todayIx = now.getDay();
+  const sh = shiftFor(TY, TM, TD);
+  document.getElementById('dsk-chore').classList.add('s' + sh.letter);
+  document.getElementById('dsk-chore-day').textContent =
+    now.toLocaleDateString(undefined, {weekday:'long'});
+  document.getElementById('dsk-chore-title').textContent = DUTIES[todayIx].title;
 })();
 
 /* ---------- calendar ---------- */
