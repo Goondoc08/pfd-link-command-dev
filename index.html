@@ -47,25 +47,29 @@
   /* bottom padding clears the floating share button */
   .wrap{max-width:760px;margin:0 auto;padding:0 14px 96px}
 
-  /* ---------- screen flip (Command module entry/return) ---------- */
-  /* The depth comes from perspective() INSIDE the transform, never from a
-     `perspective` (or `transform`) property sitting on <html> or <body>.
-     Either of those on an ancestor makes position:fixed resolve against
-     that ancestor instead of the viewport, which silently relocated every
-     fixed overlay — the FAQ sheet, the share button, the toast, and the
-     Command module's bottom sheet — to the bottom of the *document*. The
-     sheet's dim backdrop still covered the screen, so it read as "the
-     popup won't open" rather than as a positioning bug. Keeping the
-     properties scoped to the .flip-* classes means they only exist for
-     the 340ms of the animation, when no overlay is open. */
-  body.flip-out{animation:pflipOut .34s cubic-bezier(.4,0,.2,1) forwards;
-                height:100vh;overflow:hidden;backface-visibility:hidden}
-  body.flip-in{animation:pflipIn .34s cubic-bezier(.4,0,.2,1);
-               height:100vh;overflow:hidden;backface-visibility:hidden}
-  @keyframes pflipOut{from{transform:perspective(1100px) rotateY(0)}
-                        to{transform:perspective(1100px) rotateY(-90deg)}}
-  @keyframes pflipIn{from{transform:perspective(1100px) rotateY(90deg)}
-                       to{transform:perspective(1100px) rotateY(0)}}
+  /* ---------- Command module entry/return transition ---------- */
+  /* Was a 3D rotateY() flip — replaced Aug 12 2026: at the 90-degree
+     midpoint a rotated plane is edge-on (zero width), so whatever's
+     behind <body> shows through for a frame. That's near-black here,
+     and a black flash reads as "stalled," which made even a fast
+     (340ms) transition feel sluggish. Fade+scale has no such midpoint
+     and reads as fast at a shorter duration too.
+
+     If a 3D effect ever comes back: perspective() belongs INSIDE the
+     transform, never as a `perspective` (or `transform`) property on
+     an ancestor of body — either one on an ancestor makes
+     position:fixed resolve against that ancestor instead of the
+     viewport, which silently relocated every fixed overlay (the FAQ
+     sheet, the share button, the toast, the Command module's bottom
+     sheet) to the bottom of the document. That bug read as "the
+     popup won't open," not as a positioning issue — cost real time to
+     track down once already. */
+  body.flip-out{animation:pExit .2s ease-out forwards;
+                height:100vh;overflow:hidden}
+  body.flip-in{animation:pEnter .22s ease-out;
+               height:100vh;overflow:hidden}
+  @keyframes pExit{from{opacity:1;transform:scale(1)} to{opacity:0;transform:scale(.96)}}
+  @keyframes pEnter{from{opacity:0;transform:scale(1.03)} to{opacity:1;transform:scale(1)}}
 
   /* ---------- header ---------- */
   header{
@@ -489,7 +493,7 @@ if (sessionStorage.getItem('pfd-flip-return')) {
     let cleaned = false;
     const clean = () => { if (cleaned) return; cleaned = true; document.body.classList.remove('flip-in'); };
     document.body.addEventListener('animationend', function once(e){
-      if (e.animationName === 'pflipIn') { document.body.removeEventListener('animationend', once); clean(); }
+      if (e.animationName === 'pEnter') { document.body.removeEventListener('animationend', once); clean(); }
     });
     setTimeout(clean, 400);
   }
@@ -1012,7 +1016,7 @@ function closeFaq(){ faqWrap.hidden = true; }
 
 document.getElementById('infobtn').onclick = openFaq;
 
-/* ---------- Command module entry (screen flip) ---------- */
+/* ---------- Command module entry transition ---------- */
 document.getElementById('cmdbtn').addEventListener('click', e => {
   e.preventDefault();
   const url = e.currentTarget.href;
@@ -1024,9 +1028,9 @@ document.getElementById('cmdbtn').addEventListener('click', e => {
   let navigated = false;
   const go = () => { if (navigated) return; navigated = true; location.href = url; };
   document.body.addEventListener('animationend', function once(ev){
-    if (ev.animationName === 'pflipOut') { document.body.removeEventListener('animationend', once); go(); }
+    if (ev.animationName === 'pExit') { document.body.removeEventListener('animationend', once); go(); }
   });
-  setTimeout(go, 400);
+  setTimeout(go, 260);
 });
 document.getElementById('faq-x').onclick   = closeFaq;
 faqWrap.onclick = e => { if (e.target === faqWrap) closeFaq(); };   // backdrop tap
